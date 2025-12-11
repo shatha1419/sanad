@@ -15,6 +15,7 @@ import Requests from "./pages/Requests";
 import Conversations from "./pages/Conversations";
 import Agents from "./pages/Agents";
 import Profile from "./pages/Profile";
+import PhotoAnalyzer from "./pages/PhotoAnalyzer";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -110,6 +111,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/photo-analyzer"
+        element={
+          <ProtectedRoute>
+            <PhotoAnalyzer />
           </ProtectedRoute>
         }
       />
