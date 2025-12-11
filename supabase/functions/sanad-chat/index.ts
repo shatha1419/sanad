@@ -212,6 +212,23 @@ const agentTools = [
   {
     type: "function",
     function: {
+      name: "check_visa_status",
+      description: "الاستعلام عن حالة التأشيرة",
+      parameters: {
+        type: "object",
+        properties: {
+          visa_number: {
+            type: "string",
+            description: "رقم التأشيرة"
+          }
+        },
+        required: []
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "search_knowledge",
       description: "البحث في قاعدة المعرفة للحصول على معلومات عن الخدمات الحكومية",
       parameters: {
@@ -357,6 +374,22 @@ async function executeTool(toolName: string, args: Record<string, unknown>, supa
       };
     }
 
+    case "check_visa_status": {
+      // Simulate checking visa status
+      return {
+        status: "success",
+        message: "تم العثور على التأشيرات الخاصة بك",
+        data: {
+          visas: [
+            { number: "V123456", type: "خروج وعودة مفردة", status: "صالحة", expiry: "2025-06-15" },
+          ],
+          total_requests: 1,
+          total_issued: 1,
+          balance: 0
+        }
+      };
+    }
+
     case "search_knowledge": {
       // Search in knowledge base
       const { data: results } = await supabaseClient
@@ -400,17 +433,28 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, attachments } = await req.json();
+    const body = await req.json();
+    const { action, tool, args, messages, attachments } = body;
+    
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+    
+    // Handle direct tool execution
+    if (action === 'execute_tool' && tool) {
+      const result = await executeTool(tool, args || {}, supabaseClient);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Create Supabase client for knowledge base
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
 
     // Build system prompt
     const systemPrompt = `أنت "سَنَد"، مساعد ذكي للخدمات الحكومية السعودية. مهمتك مساعدة المواطنين في:
