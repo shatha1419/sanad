@@ -246,12 +246,15 @@ export default function Index() {
               {/* Divider */}
               <div className="w-px h-14 bg-muted-foreground/25"></div>
               
-              {/* Absher-style Logo (4 ascending bars) */}
-              <div className="flex items-end gap-[3px]">
-                <div className="w-[5px] h-4 bg-primary rounded-[1px]"></div>
-                <div className="w-[5px] h-6 bg-primary rounded-[1px]"></div>
-                <div className="w-[5px] h-8 bg-primary rounded-[1px]"></div>
-                <div className="w-[5px] h-10 bg-primary rounded-[1px]"></div>
+              {/* Absher Logo (4 ascending bars with أبشر text) */}
+              <div className="flex flex-col items-center">
+                <div className="flex items-end gap-[3px]">
+                  <div className="w-[5px] h-4 bg-primary rounded-[1px]"></div>
+                  <div className="w-[5px] h-6 bg-primary rounded-[1px]"></div>
+                  <div className="w-[5px] h-8 bg-primary rounded-[1px]"></div>
+                  <div className="w-[5px] h-10 bg-primary rounded-[1px]"></div>
+                </div>
+                <p className="text-[10px] font-bold text-primary mt-1">أبشر</p>
               </div>
             </div>
           </div>
