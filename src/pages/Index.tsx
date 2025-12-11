@@ -255,7 +255,7 @@ export default function Index() {
             {/* SANAD Card - Part of grid */}
             <Card
               onClick={() => navigate('/chat')}
-              className="cursor-pointer hover:shadow-sanad transition-all duration-200 bg-white border-0 overflow-hidden"
+              className="cursor-pointer hover:shadow-sanad transition-all duration-200 bg-white border border-border overflow-hidden"
             >
               <CardContent className="p-0 flex items-center justify-center h-full">
                 <img 
