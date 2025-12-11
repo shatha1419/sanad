@@ -181,76 +181,80 @@ export default function Index() {
   return (
     <Layout>
       <div className="min-h-screen bg-background">
-        {/* Header - Absher Style */}
-        <header className="bg-card px-4 py-5">
+        {/* Header - Absher Style - Exact Match */}
+        <header className="bg-card px-5 py-6">
           <div className="flex items-center justify-between">
-            {/* Menu Icon - Left */}
-            <button className="p-2">
-              <div className="space-y-2">
-                <div className="w-8 h-1.5 bg-primary rounded-sm"></div>
-                <div className="w-8 h-1.5 bg-primary rounded-sm"></div>
-                <div className="w-8 h-1.5 bg-primary rounded-sm"></div>
+            {/* Menu Icon - Left (3 thick green bars) */}
+            <button className="p-1">
+              <div className="space-y-[6px]">
+                <div className="w-9 h-[6px] bg-primary rounded-[2px]"></div>
+                <div className="w-9 h-[6px] bg-primary rounded-[2px]"></div>
+                <div className="w-9 h-[6px] bg-primary rounded-[2px]"></div>
               </div>
             </button>
 
-            {/* Language Switch - Center */}
-            <button className="flex flex-col items-center border border-muted-foreground/30 rounded-lg px-5 py-3 bg-card">
-              <div className="flex items-center gap-0">
-                <span className="text-primary text-2xl font-medium" style={{ fontFamily: 'serif' }}>ع</span>
-                <svg className="w-6 h-6 text-primary mx-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M17 8c-2-2-5-2-6 1" strokeLinecap="round"/>
-                  <path d="M18 7l-1 1.5 1.5 0.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M7 16c2 2 5 2 6-1" strokeLinecap="round"/>
-                  <path d="M6 17l1-1.5-1.5-0.5" strokeLinecap="round" strokeLinejoin="round"/>
+            {/* Language Switch - Center (ع ↔ E with English below) */}
+            <button className="flex flex-col items-center border border-muted-foreground/40 rounded-xl px-7 py-4 bg-card">
+              <div className="flex items-center">
+                <span className="text-primary text-3xl" style={{ fontFamily: 'serif' }}>ع</span>
+                <svg className="w-8 h-8 text-primary mx-1" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  {/* Top curved arrow */}
+                  <path d="M22 10c-3-4-8-3-10 2" strokeLinecap="round"/>
+                  <path d="M22 10l1-3" strokeLinecap="round"/>
+                  <path d="M22 10l3 1" strokeLinecap="round"/>
+                  {/* Bottom curved arrow */}
+                  <path d="M10 22c3 4 8 3 10-2" strokeLinecap="round"/>
+                  <path d="M10 22l-1 3" strokeLinecap="round"/>
+                  <path d="M10 22l-3-1" strokeLinecap="round"/>
                 </svg>
-                <span className="text-primary text-xl font-medium">E</span>
+                <span className="text-primary text-2xl font-medium">E</span>
               </div>
-              <span className="text-sm text-foreground mt-1">English</span>
+              <span className="text-base text-foreground mt-2 font-medium">English</span>
             </button>
 
             {/* Vision 2030 & Absher Logo - Right */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               {/* Vision 2030 */}
               <div className="text-right leading-tight">
-                <div className="flex items-center justify-end gap-1">
-                  <span className="text-[10px] text-muted-foreground">رؤيـــة</span>
-                  <span className="text-[10px] text-muted-foreground">VISION</span>
+                <div className="flex items-center justify-end gap-2 mb-0.5">
+                  <span className="text-xs text-muted-foreground tracking-wide">رؤيـــة</span>
+                  <span className="text-xs text-muted-foreground tracking-wide">VISION</span>
                 </div>
-                <div className="flex items-center justify-end gap-0">
-                  <span className="text-primary font-bold text-2xl">2</span>
-                  <svg viewBox="0 0 40 40" className="w-7 h-7">
-                    <circle cx="20" cy="20" r="12" fill="none" stroke="hsl(var(--primary))" strokeWidth="2"/>
+                <div className="flex items-center justify-end">
+                  <span className="text-primary font-bold text-3xl">2</span>
+                  <svg viewBox="0 0 50 50" className="w-10 h-10 mx-0.5">
+                    {/* Outer ring */}
+                    <circle cx="25" cy="25" r="14" fill="none" stroke="hsl(var(--primary))" strokeWidth="1.5"/>
+                    {/* Decorative dots around the ring */}
                     <g fill="hsl(var(--primary))">
-                      <circle cx="20" cy="10" r="2"/>
-                      <circle cx="28" cy="14" r="2"/>
-                      <circle cx="30" cy="22" r="2"/>
-                      <circle cx="26" cy="29" r="2"/>
-                      <circle cx="18" cy="30" r="2"/>
-                      <circle cx="11" cy="26" r="2"/>
-                      <circle cx="10" cy="18" r="2"/>
-                      <circle cx="14" cy="12" r="2"/>
-                      <circle cx="20" cy="20" r="3"/>
+                      <circle cx="25" cy="9" r="2.5"/>
+                      <circle cx="36" cy="13" r="2.5"/>
+                      <circle cx="41" cy="25" r="2.5"/>
+                      <circle cx="36" cy="37" r="2.5"/>
+                      <circle cx="25" cy="41" r="2.5"/>
+                      <circle cx="14" cy="37" r="2.5"/>
+                      <circle cx="9" cy="25" r="2.5"/>
+                      <circle cx="14" cy="13" r="2.5"/>
+                      {/* Center dot */}
+                      <circle cx="25" cy="25" r="4"/>
                     </g>
                   </svg>
-                  <span className="text-primary font-bold text-2xl">3</span>
-                  <span className="text-primary font-bold text-2xl">0</span>
+                  <span className="text-primary font-bold text-3xl">3</span>
+                  <span className="text-primary font-bold text-3xl">0</span>
                 </div>
-                <p className="text-[8px] text-muted-foreground">المملكة العربية السعودية</p>
-                <p className="text-[7px] text-muted-foreground">KINGDOM OF SAUDI ARABIA</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">المملكة العربية السعودية</p>
+                <p className="text-[9px] text-muted-foreground">KINGDOM OF SAUDI ARABIA</p>
               </div>
               
               {/* Divider */}
-              <div className="w-px h-14 bg-muted-foreground/30"></div>
+              <div className="w-px h-16 bg-muted-foreground/30"></div>
               
-              {/* Absher-style Logo */}
-              <div className="flex flex-col items-center">
-                <div className="flex gap-[3px] items-end">
-                  <div className="w-[5px] h-4 bg-primary rounded-sm"></div>
-                  <div className="w-[5px] h-5 bg-primary rounded-sm"></div>
-                  <div className="w-[5px] h-6 bg-primary rounded-sm"></div>
-                  <div className="w-[5px] h-7 bg-primary rounded-sm"></div>
-                  <div className="w-[5px] h-8 bg-primary rounded-sm"></div>
-                </div>
+              {/* Absher-style Logo (ascending bars) */}
+              <div className="flex items-end gap-1">
+                <div className="w-[6px] h-5 bg-primary rounded-sm"></div>
+                <div className="w-[6px] h-7 bg-primary rounded-sm"></div>
+                <div className="w-[6px] h-9 bg-primary rounded-sm"></div>
+                <div className="w-[6px] h-11 bg-primary rounded-sm"></div>
               </div>
             </div>
           </div>
