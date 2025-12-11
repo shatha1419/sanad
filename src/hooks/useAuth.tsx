@@ -1,13 +1,13 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { DEMO_USERS } from '@/lib/constants';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithNationalId: (nationalId: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -38,30 +38,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string) => {
-    const redirectUrl = `${window.location.origin}/`;
+  const signInWithNationalId = async (nationalId: string) => {
+    // Check if this is a demo user
+    const demoUser = DEMO_USERS[nationalId];
     
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          full_name: fullName,
-        },
-      },
-    });
-    
-    return { error: error as Error | null };
-  };
+    if (!demoUser) {
+      return { error: new Error('رقم الهوية غير مسجل في النظام') };
+    }
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    // Use national ID as email for Supabase auth
+    const email = `${nationalId}@sanad.local`;
+    const password = nationalId; // Using national ID as password for demo
+
+    // Try to sign in first
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    
-    return { error: error as Error | null };
+
+    if (signInError) {
+      // If sign in fails, try to sign up
+      if (signInError.message.includes('Invalid login')) {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: {
+              full_name: demoUser.fullName,
+              national_id: demoUser.nationalId,
+            },
+          },
+        });
+
+        if (signUpError) {
+          return { error: signUpError as Error };
+        }
+
+        // Update profile with demo data after signup
+        setTimeout(async () => {
+          const { data: { user: currentUser } } = await supabase.auth.getUser();
+          if (currentUser) {
+            await supabase.from('profiles').update({
+              full_name: demoUser.fullName,
+              national_id: demoUser.nationalId,
+              birth_date_gregorian: demoUser.birthDateGregorian,
+              birth_date_hijri: demoUser.birthDateHijri,
+              nationality: demoUser.nationality,
+              city: demoUser.city,
+              occupation: demoUser.occupation,
+              marital_status: demoUser.maritalStatus,
+              national_id_expiry: demoUser.nationalIdExpiry,
+              phone: demoUser.phone,
+            }).eq('user_id', currentUser.id);
+          }
+        }, 1000);
+
+        return { error: null };
+      }
+      return { error: signInError as Error };
+    }
+
+    return { error: null };
   };
 
   const signOut = async () => {
@@ -69,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signInWithNationalId, signOut }}>
       {children}
     </AuthContext.Provider>
   );
