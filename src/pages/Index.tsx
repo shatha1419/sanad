@@ -227,8 +227,8 @@ export default function Index() {
             </div>
           </div>
 
-          {/* Main Cards - 2x2 Grid */}
-          <div className="grid grid-cols-2 gap-3 mb-3">
+          {/* Main Cards - 2x3 Grid with Calendar */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
             {dashboardCards.map((card) => {
               const IconComponent = card.icon;
               return (
@@ -247,10 +247,8 @@ export default function Index() {
                 </Card>
               );
             })}
-          </div>
-
-          {/* Calendar Section */}
-          <div className="mb-6">
+            
+            {/* Calendar Card - Part of grid */}
             <AppointmentCalendar />
           </div>
 
