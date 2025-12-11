@@ -154,15 +154,10 @@ const dashboardCards = [
 
 const appointmentCard = { id: 'appointments', name: 'مواعيد', icon: CalendarIcon, route: '/requests' };
 
-// Other services with all items
-const otherServices = [
-  { id: 'criminal_record', name: 'إصدار شهادة خلو سوابق', icon: CertificateIcon, route: '/services/civil_affairs' },
-  { id: 'absher_reports', name: 'تقارير أبشر', icon: ReportsIcon, route: '/services' },
-  { id: 'vehicle_sale', name: 'مبايعة المركبات', icon: VehicleSaleIcon, route: '/services/traffic' },
-  { id: 'plate_auction', name: 'مزاد اللوحات الإلكترونية', icon: AuctionIcon, route: '/services/traffic' },
-  { id: 'travel_ban', name: 'إيقاف الخدمات وقيود السفر', icon: TravelBanIcon, route: '/services' },
-  { id: 'violations_inquiry', name: 'الاستعلام الشامل عن المخالفات المرورية', icon: ViolationsIcon, route: '/services/traffic' },
-  { id: 'payment_balance', name: 'رصيد المدفوعات الحكومية', icon: PaymentBalanceIcon, route: '/services' },
+// Featured services - أبرز الخدمات
+const featuredServices = [
+  { id: 'issue_license', name: 'إصدار رخصة', icon: CertificateIcon, route: '/services/traffic' },
+  { id: 'renew_id', name: 'تجديد هوية', icon: ReportsIcon, route: '/services/civil_affairs' },
 ];
 
 export default function Index() {
@@ -170,14 +165,14 @@ export default function Index() {
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
 
   const nextService = () => {
-    setCurrentServiceIndex((prev) => (prev + 1) % otherServices.length);
+    setCurrentServiceIndex((prev) => (prev + 1) % featuredServices.length);
   };
 
   const prevService = () => {
-    setCurrentServiceIndex((prev) => (prev - 1 + otherServices.length) % otherServices.length);
+    setCurrentServiceIndex((prev) => (prev - 1 + featuredServices.length) % featuredServices.length);
   };
 
-  const currentService = otherServices[currentServiceIndex];
+  const currentService = featuredServices[currentServiceIndex];
   const CurrentIcon = currentService.icon;
 
   return (
@@ -269,7 +264,7 @@ export default function Index() {
           <div className="mb-6 bg-muted py-8 -mx-4 px-4">
             <div className="flex items-center justify-center mb-6">
               <div className="flex-1 h-px bg-border"></div>
-              <h2 className="px-4 text-lg font-semibold text-foreground">خدمات أخرى</h2>
+              <h2 className="px-4 text-lg font-semibold text-foreground">أبرز الخدمات</h2>
               <div className="flex-1 h-px bg-border"></div>
             </div>
 
@@ -304,7 +299,7 @@ export default function Index() {
 
             {/* Pagination Dots */}
             <div className="flex items-center justify-center gap-2 mt-5">
-              {otherServices.map((_, index) => (
+              {featuredServices.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentServiceIndex(index)}
