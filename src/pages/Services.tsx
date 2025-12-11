@@ -3,10 +3,10 @@ import { Layout } from '@/components/layout/Layout';
 import { ServiceCategory } from '@/components/services/ServiceCategory';
 import { ServiceCard } from '@/components/services/ServiceCard';
 import { SERVICES } from '@/lib/constants';
-import { Passport, Car, IdCard, Plane, FileText } from 'lucide-react';
+import { BookOpen, Car, IdCard, Plane, FileText } from 'lucide-react';
 
 const iconMap: Record<string, React.ReactNode> = {
-  Passport: <Passport className="w-5 h-5" />,
+  Passport: <BookOpen className="w-5 h-5" />,
   Car: <Car className="w-5 h-5" />,
   IdCard: <IdCard className="w-5 h-5" />,
   Plane: <Plane className="w-5 h-5" />,

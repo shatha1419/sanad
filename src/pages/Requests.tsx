@@ -65,7 +65,7 @@ export default function Requests() {
         .order('updated_at', { ascending: false }),
     ]);
 
-    if (requestsResult.data) setRequests(requestsResult.data);
+    if (requestsResult.data) setRequests(requestsResult.data as ServiceRequest[]);
     if (conversationsResult.data) setConversations(conversationsResult.data);
     
     setLoading(false);

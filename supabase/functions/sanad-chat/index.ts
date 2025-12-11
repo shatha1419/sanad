@@ -229,7 +229,7 @@ const agentTools = [
 ];
 
 // Execute agent tool
-async function executeTool(toolName: string, args: Record<string, unknown>, supabaseClient: ReturnType<typeof createClient>): Promise<{ status: string; message: string; data?: unknown }> {
+async function executeTool(toolName: string, args: Record<string, unknown>, supabaseClient: any): Promise<{ status: string; message: string; data?: unknown }> {
   console.log(`Executing tool: ${toolName}`, args);
   
   switch (toolName) {
