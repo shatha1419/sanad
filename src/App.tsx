@@ -12,6 +12,7 @@ import Services from "./pages/Services";
 import ServiceCategory from "./pages/ServiceCategory";
 import ServiceDetail from "./pages/ServiceDetail";
 import Requests from "./pages/Requests";
+import Conversations from "./pages/Conversations";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -84,6 +85,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Requests />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/conversations"
+        element={
+          <ProtectedRoute>
+            <Conversations />
           </ProtectedRoute>
         }
       />

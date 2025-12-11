@@ -7,14 +7,45 @@ import { ArrowRight, FileText, Clock, CheckCircle, Loader2, Bot, Zap, MessageCir
 import { useState } from 'react';
 import { useAgentAction } from '@/hooks/useAgentAction';
 import { toast } from 'sonner';
+import { ServiceExecutionForm } from '@/components/services/ServiceExecutionForm';
+import { supabase } from '@/integrations/supabase/client';
+
+// Service requirements configuration
+const SERVICE_REQUIREMENTS: Record<string, { id: string; name: string; type: 'file' | 'image' | 'text' | 'select'; required: boolean; description?: string; options?: string[] }[]> = {
+  renew_license: [
+    { id: 'id_image', name: 'صورة الهوية الوطنية', type: 'image', required: true, description: 'صورة واضحة من الأمام' },
+    { id: 'personal_photo', name: 'صورة شخصية حديثة', type: 'image', required: true, description: 'خلفية بيضاء، 4x6' },
+    { id: 'medical_report', name: 'التقرير الطبي', type: 'file', required: false, description: 'إن وجد' },
+  ],
+  check_violations: [
+    { id: 'plate_number', name: 'رقم اللوحة', type: 'text', required: true },
+  ],
+  issue_license: [
+    { id: 'id_image', name: 'صورة الهوية الوطنية', type: 'image', required: true },
+    { id: 'personal_photo', name: 'صورة شخصية', type: 'image', required: true },
+    { id: 'medical_report', name: 'التقرير الطبي', type: 'file', required: true },
+    { id: 'training_certificate', name: 'شهادة التدريب', type: 'file', required: true },
+  ],
+  passport_services: [
+    { id: 'id_image', name: 'صورة الهوية الوطنية', type: 'image', required: true },
+    { id: 'personal_photo', name: 'صورة شخصية', type: 'image', required: true },
+    { id: 'old_passport', name: 'صورة الجواز القديم', type: 'image', required: false },
+  ],
+  default: [
+    { id: 'id_image', name: 'صورة الهوية الوطنية', type: 'image', required: true },
+    { id: 'notes', name: 'ملاحظات إضافية', type: 'text', required: false },
+  ],
+};
 
 export default function ServiceDetail() {
   const { categoryId, serviceId } = useParams<{ categoryId: string; serviceId: string }>();
   const navigate = useNavigate();
   const { executeAction, loading: isExecuting } = useAgentAction();
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [resultData, setResultData] = useState<unknown>(null);
   const [executionMode, setExecutionMode] = useState<'auto' | 'agent' | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const category = categoryId ? SERVICES[categoryId] : null;
   
@@ -23,7 +54,6 @@ export default function ServiceDetail() {
   if (category) {
     service = category.services.find(s => s.id === serviceId);
     if (!service) {
-      // Search in sub-services
       for (const s of category.services) {
         if (s.subServices) {
           service = s.subServices.find(sub => sub.id === serviceId);
@@ -46,30 +76,82 @@ export default function ServiceDetail() {
     );
   }
 
-  const handleExecuteAuto = async () => {
+  const requirements = SERVICE_REQUIREMENTS[serviceId || ''] || SERVICE_REQUIREMENTS.default;
+
+  const handleExecuteAuto = () => {
     setExecutionMode('auto');
+    setShowForm(true);
+  };
+
+  const handleFormSubmit = async (data: Record<string, unknown>) => {
+    setIsSubmitting(true);
     
-    if (service?.agentTool) {
-      try {
-        const result = await executeAction(service.agentTool);
+    try {
+      // Get user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('يجب تسجيل الدخول أولاً');
+        return;
+      }
+
+      // Create service request
+      const { data: requestData, error } = await supabase
+        .from('service_requests')
+        .insert({
+          user_id: user.id,
+          service_type: service?.name || '',
+          service_category: categoryId || '',
+          status: 'pending',
+          request_data: {
+            ...data,
+            execution_type: executionMode,
+          },
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Execute agent tool if available
+      if (service?.agentTool) {
+        const result = await executeAction(service.agentTool, data);
         if (result) {
           setResultData(result);
-          setShowSuccess(true);
+          
+          // Update request with result
+          await supabase
+            .from('service_requests')
+            .update({
+              status: 'completed',
+              result_data: JSON.parse(JSON.stringify(result)),
+            })
+            .eq('id', requestData.id);
         }
-      } catch (error) {
-        toast.error('حدث خطأ أثناء تنفيذ الخدمة');
+      } else {
+        setResultData({ request_number: `R${Date.now().toString().slice(-6)}` });
+        
+        // Update status
+        await supabase
+          .from('service_requests')
+          .update({ status: 'processing' })
+          .eq('id', requestData.id);
       }
-    } else {
-      // Simulate auto execution for services without agentTool
+
       toast.success('تم تقديم طلبك بنجاح');
-      setResultData({ request_number: `R${Date.now().toString().slice(-6)}` });
+      setShowForm(false);
       setShowSuccess(true);
+      
+    } catch (error) {
+      console.error('Error submitting service request:', error);
+      toast.error('حدث خطأ أثناء تقديم الطلب');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleExecuteWithAgent = () => {
     setExecutionMode('agent');
-    // Open chat with service context - dispatch custom event
+    // Open chat with service context
     const event = new CustomEvent('openChatWithContext', {
       detail: {
         service: service?.name,
@@ -87,7 +169,7 @@ export default function ServiceDetail() {
       <Layout>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-md mx-auto text-center">
-            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6 animate-scale-in">
               <CheckCircle className="w-10 h-10 text-primary" />
             </div>
             
@@ -119,13 +201,53 @@ export default function ServiceDetail() {
               </Card>
             )}
 
-            <Button 
-              onClick={() => navigate('/')} 
-              className="w-full gradient-primary text-primary-foreground rounded-full py-6"
-            >
-              العودة للصفحة الرئيسية
-            </Button>
+            <div className="space-y-3">
+              <Button 
+                onClick={() => navigate('/requests')} 
+                variant="outline"
+                className="w-full rounded-full py-6"
+              >
+                متابعة طلباتي
+              </Button>
+              <Button 
+                onClick={() => navigate('/')} 
+                className="w-full gradient-primary text-primary-foreground rounded-full py-6"
+              >
+                العودة للصفحة الرئيسية
+              </Button>
+            </div>
           </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (showForm) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center gap-4 mb-6">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowForm(false)}
+              className="shrink-0"
+            >
+              <ArrowRight className="w-5 h-5" />
+            </Button>
+            <div>
+              <span className="text-xs text-muted-foreground">{category.name}</span>
+              <h1 className="text-xl font-bold text-foreground">{service.name}</h1>
+            </div>
+          </div>
+
+          <ServiceExecutionForm
+            serviceName={service.name}
+            requirements={requirements}
+            onSubmit={handleFormSubmit}
+            onCancel={() => setShowForm(false)}
+            isLoading={isSubmitting || isExecuting}
+          />
         </div>
       </Layout>
     );
@@ -159,20 +281,24 @@ export default function ServiceDetail() {
           </CardContent>
         </Card>
 
-        {/* Requirements */}
+        {/* Requirements Preview */}
         <div className="mb-6">
           <h2 className="text-lg font-bold text-foreground mb-4 text-right">المتطلبات</h2>
           <Card>
             <CardContent className="p-4 space-y-3">
-              <div className="flex items-center gap-3 text-right">
-                <FileText className="w-5 h-5 text-primary shrink-0" />
-                <span className="text-foreground">صورة من الهوية الوطنية</span>
-              </div>
-              <div className="flex items-center gap-3 text-right">
-                <FileText className="w-5 h-5 text-primary shrink-0" />
-                <span className="text-foreground">صورة شخصية حديثة</span>
-              </div>
-              <div className="flex items-center gap-3 text-right">
+              {requirements.map((req) => (
+                <div key={req.id} className="flex items-center gap-3 text-right">
+                  <FileText className="w-5 h-5 text-primary shrink-0" />
+                  <div className="flex-1">
+                    <span className="text-foreground">{req.name}</span>
+                    {req.required && <span className="text-destructive text-xs mr-1">*</span>}
+                    {req.description && (
+                      <p className="text-xs text-muted-foreground">{req.description}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <div className="flex items-center gap-3 text-right pt-2 border-t border-border">
                 <Clock className="w-5 h-5 text-primary shrink-0" />
                 <span className="text-foreground">مدة التنفيذ: 3-5 أيام عمل</span>
               </div>
@@ -196,13 +322,9 @@ export default function ServiceDetail() {
                 </div>
                 <div className="flex-1 text-right">
                   <h3 className="font-bold text-foreground mb-1">تنفيذ تلقائي</h3>
-                  <p className="text-sm text-muted-foreground">تنفيذ الخدمة مباشرة مثل أبشر الحالي</p>
+                  <p className="text-sm text-muted-foreground">تنفيذ الخدمة مباشرة مثل أبشر - أدخل البيانات والمستندات المطلوبة</p>
                 </div>
-                {isExecuting && executionMode === 'auto' ? (
-                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                ) : (
-                  <ArrowRight className="w-5 h-5 text-muted-foreground rotate-180" />
-                )}
+                <ArrowRight className="w-5 h-5 text-muted-foreground rotate-180" />
               </div>
             </CardContent>
           </Card>
@@ -219,7 +341,7 @@ export default function ServiceDetail() {
                 </div>
                 <div className="flex-1 text-right">
                   <h3 className="font-bold text-foreground mb-1">تنفيذ عبر سَنَد</h3>
-                  <p className="text-sm text-muted-foreground">دع المساعد الذكي سَنَد ينفذ الخدمة عنك</p>
+                  <p className="text-sm text-muted-foreground">دع المساعد الذكي سَنَد يساعدك في تنفيذ الخدمة خطوة بخطوة</p>
                 </div>
                 <MessageCircle className="w-5 h-5 text-muted-foreground" />
               </div>

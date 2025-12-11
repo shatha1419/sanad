@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { MessageCircle, X, Send, Mic, Loader2, Bot, CheckCircle } from 'lucide-react';
+import { MessageCircle, X, Send, Mic, Loader2, Bot, CheckCircle, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useChat, Message } from '@/hooks/useChat';
+import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { cn } from '@/lib/utils';
 
 interface ServiceContext {
@@ -17,14 +18,19 @@ export function FloatingChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [serviceContext, setServiceContext] = useState<ServiceContext | null>(null);
-  const { messages, isLoading, sendMessage, clearMessages } = useChat();
+  const { messages, isLoading, sendMessage, clearMessages, loadConversation } = useChat();
+  
+  const { isRecording, startLiveRecognition, stopRecording } = useVoiceInput({
+    onTranscript: (text) => {
+      setInput(prev => prev + ' ' + text);
+    },
+  });
 
   // Listen for openChatWithContext event
   useEffect(() => {
     const handleOpenWithContext = (event: CustomEvent<ServiceContext>) => {
       setServiceContext(event.detail);
       setIsOpen(true);
-      // Send the initial message with context
       if (event.detail.message) {
         setTimeout(() => {
           sendMessage(event.detail.message || '', 'text');
@@ -32,11 +38,19 @@ export function FloatingChat() {
       }
     };
 
+    const handleOpenWithConversation = (event: CustomEvent<{ conversationId: string }>) => {
+      setIsOpen(true);
+      loadConversation(event.detail.conversationId);
+    };
+
     window.addEventListener('openChatWithContext', handleOpenWithContext as EventListener);
+    window.addEventListener('openChatWithConversation', handleOpenWithConversation as EventListener);
+    
     return () => {
       window.removeEventListener('openChatWithContext', handleOpenWithContext as EventListener);
+      window.removeEventListener('openChatWithConversation', handleOpenWithConversation as EventListener);
     };
-  }, [sendMessage]);
+  }, [sendMessage, loadConversation]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -62,7 +76,14 @@ export function FloatingChat() {
     setServiceContext(null);
   };
 
-  // Parse tool calls from message
+  const handleVoiceInput = async () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      await startLiveRecognition();
+    }
+  };
+
   const renderToolCalls = (toolCalls?: { name: string; result: unknown }[]) => {
     if (!toolCalls || toolCalls.length === 0) return null;
 
@@ -112,7 +133,6 @@ export function FloatingChat() {
         ) : (
           <>
             <Bot className="w-6 h-6" />
-            {/* Pulse ring */}
             <span className="absolute inset-0 rounded-full gradient-primary animate-pulse-ring" />
           </>
         )}
@@ -215,16 +235,27 @@ export function FloatingChat() {
           {/* Input */}
           <div className="p-3 border-t border-border bg-muted/30">
             <div className="flex items-center gap-2">
-              <Button size="icon" variant="ghost" className="shrink-0 text-muted-foreground hover:text-primary">
-                <Mic className="w-5 h-5" />
+              <Button 
+                size="icon" 
+                variant={isRecording ? "destructive" : "ghost"} 
+                className={cn(
+                  "shrink-0",
+                  isRecording 
+                    ? "animate-pulse" 
+                    : "text-muted-foreground hover:text-primary"
+                )}
+                onClick={handleVoiceInput}
+                disabled={isLoading}
+              >
+                {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
               </Button>
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="اكتب طلبك أو سؤالك..."
+                placeholder={isRecording ? "جاري الاستماع..." : "اكتب طلبك أو سؤالك..."}
                 className="flex-1 bg-card border-0 text-right"
-                disabled={isLoading}
+                disabled={isLoading || isRecording}
               />
               <Button 
                 size="icon" 
