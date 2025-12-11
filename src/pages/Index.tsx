@@ -274,7 +274,7 @@ export default function Index() {
                 onClick={nextService}
                 className="shrink-0 text-primary hover:text-primary/70 transition-colors"
               >
-                <ChevronLeft className="w-10 h-10" strokeWidth={2.5} />
+                <ChevronRight className="w-10 h-10" strokeWidth={2.5} />
               </button>
               
               <Card 
@@ -293,7 +293,7 @@ export default function Index() {
                 onClick={prevService}
                 className="shrink-0 text-primary hover:text-primary/70 transition-colors"
               >
-                <ChevronRight className="w-10 h-10" strokeWidth={2.5} />
+                <ChevronLeft className="w-10 h-10" strokeWidth={2.5} />
               </button>
             </div>
 
