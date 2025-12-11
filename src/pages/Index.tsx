@@ -100,7 +100,7 @@ export default function Index() {
           <h2 className="text-xl font-bold text-foreground text-center mb-6">الخدمات الأكثر شيوعًا</h2>
           
           <div className="space-y-4">
-            {/* Popular Service 1 */}
+            {/* Popular Service 1 - Renew ID */}
             <Card className="bg-card border-border">
               <CardContent className="p-5">
                 <div className="flex items-start gap-4">
@@ -115,12 +115,15 @@ export default function Index() {
                     </p>
                     <div className="flex items-center gap-4">
                       <button 
-                        onClick={() => navigate('/services/civil_affairs')}
+                        onClick={() => navigate('/services/civil_affairs/national_id_services')}
                         className="px-4 py-2 gradient-primary text-primary-foreground rounded-full text-sm font-medium"
                       >
                         اطلب الخدمة
                       </button>
-                      <button className="text-sm text-primary underline">
+                      <button 
+                        onClick={() => navigate('/services/civil_affairs/national_id_services')}
+                        className="text-sm text-primary underline"
+                      >
                         الاطلاع على الوثائق المطلوبة
                       </button>
                     </div>
@@ -129,7 +132,7 @@ export default function Index() {
               </CardContent>
             </Card>
 
-            {/* Popular Service 2 */}
+            {/* Popular Service 2 - Passport */}
             <Card className="bg-card border-border">
               <CardContent className="p-5">
                 <div className="flex items-start gap-4">
@@ -144,12 +147,15 @@ export default function Index() {
                     </p>
                     <div className="flex items-center gap-4">
                       <button 
-                        onClick={() => navigate('/services/passports')}
+                        onClick={() => navigate('/services/passports/passport_services')}
                         className="px-4 py-2 gradient-primary text-primary-foreground rounded-full text-sm font-medium"
                       >
                         اطلب الخدمة
                       </button>
-                      <button className="text-sm text-primary underline">
+                      <button 
+                        onClick={() => navigate('/services/passports/passport_services')}
+                        className="text-sm text-primary underline"
+                      >
                         الاطلاع على الوثائق المطلوبة
                       </button>
                     </div>
@@ -158,7 +164,7 @@ export default function Index() {
               </CardContent>
             </Card>
 
-            {/* Popular Service 3 */}
+            {/* Popular Service 3 - Renew License */}
             <Card className="bg-card border-border">
               <CardContent className="p-5">
                 <div className="flex items-start gap-4">
@@ -173,12 +179,15 @@ export default function Index() {
                     </p>
                     <div className="flex items-center gap-4">
                       <button 
-                        onClick={() => navigate('/services/traffic')}
+                        onClick={() => navigate('/services/traffic/renew_license')}
                         className="px-4 py-2 gradient-primary text-primary-foreground rounded-full text-sm font-medium"
                       >
                         اطلب الخدمة
                       </button>
-                      <button className="text-sm text-primary underline">
+                      <button 
+                        onClick={() => navigate('/services/traffic/renew_license')}
+                        className="text-sm text-primary underline"
+                      >
                         الاطلاع على الوثائق المطلوبة
                       </button>
                     </div>
