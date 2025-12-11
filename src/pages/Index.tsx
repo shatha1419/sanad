@@ -147,9 +147,9 @@ const PaymentBalanceIcon = () => (
 // Dashboard cards data
 const dashboardCards = [
   { id: 'my_services', name: 'خدماتي', icon: LaptopIcon, route: '/services' },
-  { id: 'vehicles', name: 'المركبات', icon: CarIcon, route: '/services/traffic' },
+  { id: 'traffic', name: 'المرور', icon: CarIcon, route: '/services/traffic' },
   { id: 'family', name: 'أفراد الأسرة', icon: FamilyIcon, route: '/profile' },
-  { id: 'workers', name: 'العمالة', icon: WorkersIcon, route: '/profile' },
+  { id: 'passports', name: 'الجوازات', icon: WorkersIcon, route: '/services/passports' },
 ];
 
 const appointmentCard = { id: 'appointments', name: 'مواعيد', icon: CalendarIcon, route: '/requests' };
