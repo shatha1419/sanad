@@ -6,6 +6,10 @@ export interface ServiceItem {
   description: string;
   actionType: ServiceActionType;
   agentTool?: string;
+  conditions?: string[];
+  fees?: string;
+  beneficiary?: string;
+  howToAccess?: string;
   subServices?: ServiceItem[];
 }
 
@@ -26,25 +30,105 @@ export const SERVICES: Record<string, ServiceCategoryType> = {
     color: 'text-amber-600',
     bgColor: 'bg-amber-100',
     services: [
-      { id: 'traffic_contact', name: 'تواصل', description: 'التواصل مع إدارة المرور', actionType: 'chat' },
-      { id: 'plate_auction', name: 'خدمة مزاد اللوحات الإلكتروني', description: 'المشاركة في مزاد اللوحات المميزة', actionType: 'chat' },
-      { id: 'accident_objection', name: 'الاعتراض أو التنازل عن حادث', description: 'تقديم اعتراض أو تنازل عن حادث مروري', actionType: 'chat' },
-      { id: 'renew_license', name: 'تجديد رخصة القيادة', description: 'تجديد الرخصة المنتهية أو قريبة الانتهاء', actionType: 'direct', agentTool: 'renew_license' },
-      { id: 'issue_license', name: 'إصدار رخصة قيادة', description: 'إصدار رخصة قيادة جديدة', actionType: 'chat' },
-      { id: 'customs_cards', name: 'البطائق الجمركية', description: 'إدارة البطائق الجمركية للمركبات', actionType: 'chat' },
       { 
-        id: 'traffic_violations', 
-        name: 'المخالفات المرورية', 
-        description: 'إدارة المخالفات المرورية',
-        actionType: 'view',
-        subServices: [
-          { id: 'violation_objection', name: 'الاعتراض على المخالفات المرورية', description: 'تقديم اعتراض على مخالفة', actionType: 'chat' },
-          { id: 'check_violations', name: 'الاستعلام الشامل عن المخالفات المرورية', description: 'عرض جميع المخالفات', actionType: 'direct', agentTool: 'check_fines' },
-          { id: 'extend_payment', name: 'تمديد مهلة سداد المخالفات المرورية', description: 'طلب تمديد مهلة السداد', actionType: 'chat' },
-        ]
+        id: 'renew_vehicle_registration', 
+        name: 'تجديد رخصة سير (الاستمارة)', 
+        description: 'تجديد رخصة سير المركبة ليستمر استخدامها بشكل نظامي داخل المملكة',
+        actionType: 'direct', 
+        agentTool: 'renew_vehicle_registration',
+        conditions: ['وجود فحص دوري ساري', 'وجود تأمين ساري للمركبة', 'سداد رسوم التجديد', 'عدم وجود مخالفات مرورية'],
+        fees: '100 ريال لكل سنة',
+        beneficiary: 'مواطن – مقيم',
+        howToAccess: 'خدماتي ← المرور ← خدمات المركبات ← تجديد رخصة سير'
       },
-      { id: 'accident_report', name: 'تقرير الحادث', description: 'عرض تقارير الحوادث', actionType: 'chat' },
-      { id: 'renew_license_abroad', name: 'تجديد رخصة القيادة لمن هم بالخارج', description: 'تجديد الرخصة للمقيمين خارج المملكة', actionType: 'chat' },
+      { 
+        id: 'transfer_vehicle_ownership', 
+        name: 'نقل ملكية مركبة (مبايعة)', 
+        description: 'نقل ملكية السيارة بين البائع والمشتري بشكل إلكتروني',
+        actionType: 'direct', 
+        agentTool: 'transfer_vehicle_ownership',
+        conditions: ['فحص دوري ساري', 'تأمين للمركبة', 'سداد رسوم النقل', 'رخصة سير سارية'],
+        fees: '230 ريال',
+        beneficiary: 'مواطن – مقيم',
+        howToAccess: 'خدماتي ← المرور ← مبايعة المركبات ← نقل ملكية مركبة'
+      },
+      { 
+        id: 'add_vehicle_user', 
+        name: 'إضافة مستخدم فعلي للمركبة', 
+        description: 'تمكين شخص آخر من استخدام المركبة بشكل رسمي',
+        actionType: 'direct', 
+        agentTool: 'add_vehicle_user',
+        conditions: ['موافقة المالك', 'أن يمتلك المستخدم رخصة قيادة مناسبة'],
+        fees: 'مجاني',
+        beneficiary: 'مواطن – مقيم',
+        howToAccess: 'خدماتي ← المرور ← إدارة المركبات ← إضافة مستخدم فعلي'
+      },
+      { 
+        id: 'remove_vehicle_user', 
+        name: 'إزالة مستخدم فعلي للمركبة', 
+        description: 'إلغاء تسجيل شخص كمستخدم فعلي للمركبة',
+        actionType: 'direct', 
+        agentTool: 'remove_vehicle_user',
+        conditions: ['موافقة المالك', 'عدم وجود مخالفات معلقة'],
+        fees: 'مجاني',
+        beneficiary: 'مواطن – مقيم',
+        howToAccess: 'خدماتي ← المرور ← إدارة المركبات ← إزالة مستخدم فعلي'
+      },
+      { 
+        id: 'renew_license', 
+        name: 'تجديد رخصة القيادة', 
+        description: 'تجديد رخص القيادة الخاصة والعامة',
+        actionType: 'direct', 
+        agentTool: 'renew_license',
+        conditions: ['فحص طبي', 'سداد رسوم التجديد', 'عدم وجود مخالفات'],
+        fees: '40 ريال لكل سنة',
+        beneficiary: 'مواطن – مقيم',
+        howToAccess: 'خدماتي ← المرور ← خدمات رخص القيادة ← تجديد رخصة قيادة'
+      },
+      { 
+        id: 'issue_license', 
+        name: 'إصدار رخصة قيادة', 
+        description: 'إصدار رخصة قيادة جديدة بعد اجتياز التدريب',
+        actionType: 'direct', 
+        agentTool: 'issue_license',
+        conditions: ['اجتياز الفحص العملي', 'اجتياز الفحص النظري', 'فحص طبي', 'إتمام الساعات التدريبية'],
+        fees: '100 – 400 ريال حسب نوع الرخصة',
+        beneficiary: 'مواطن – مقيم',
+        howToAccess: 'خدماتي ← المرور ← خدمات رخص القيادة ← إصدار رخصة قيادة'
+      },
+      { 
+        id: 'check_violations', 
+        name: 'الاستعلام عن المخالفات المرورية', 
+        description: 'معرفة تفاصيل المخالفات المسجلة على المستخدم أو المركبات',
+        actionType: 'direct', 
+        agentTool: 'check_fines',
+        conditions: [],
+        fees: 'مجاني',
+        beneficiary: 'الجميع',
+        howToAccess: 'خدماتي ← المرور ← المخالفات ← الاستعلام عن المخالفات'
+      },
+      { 
+        id: 'violation_objection', 
+        name: 'الاعتراض على المخالفات', 
+        description: 'رفع اعتراض رسمي على مخالفة رصد آلي',
+        actionType: 'direct', 
+        agentTool: 'violation_objection',
+        conditions: ['التقديم خلال 30 يوم من تسجيل المخالفة', 'أن تكون مخالفة رصد آلي'],
+        fees: 'مجاني',
+        beneficiary: 'مواطن – مقيم',
+        howToAccess: 'خدماتي ← المرور ← المخالفات ← الاعتراض على المخالفات'
+      },
+      { 
+        id: 'book_traffic_appointment', 
+        name: 'حجز موعد مرور', 
+        description: 'حجز موعد لزيارة أحد فروع المرور لإتمام خدمة تتطلب حضور',
+        actionType: 'direct', 
+        agentTool: 'book_appointment',
+        conditions: [],
+        fees: 'مجاني',
+        beneficiary: 'الجميع',
+        howToAccess: 'خدماتي ← المواعيد ← المرور ← حجز موعد'
+      },
     ],
   },
   civil_affairs: {
@@ -54,25 +138,72 @@ export const SERVICES: Record<string, ServiceCategoryType> = {
     color: 'text-emerald-600',
     bgColor: 'bg-emerald-100',
     services: [
-      { id: 'national_id_services', name: 'خدمات الهوية الوطنية', description: 'إصدار وتجديد الهوية الوطنية', actionType: 'chat' },
-      { id: 'family_record_services', name: 'خدمات سجل الأسرة', description: 'إدارة سجل الأسرة', actionType: 'chat' },
-      { id: 'birth_registration', name: 'خدمة تسجيل المواليد', description: 'تسجيل مولود جديد', actionType: 'chat' },
-      { id: 'birth_certificate_services', name: 'خدمات شهادة الميلاد', description: 'إصدار واستخراج شهادة الميلاد', actionType: 'chat' },
-      { id: 'death_certificate_services', name: 'خدمات شهادة الوفاة', description: 'إصدار شهادة وفاة', actionType: 'chat' },
-      { id: 'civil_contact', name: 'تواصل', description: 'التواصل مع الأحوال المدنية', actionType: 'chat' },
-      { id: 'advanced_data', name: 'بياناتي المطورة', description: 'عرض البيانات الشخصية المطورة', actionType: 'direct', agentTool: 'get_advanced_data' },
-      { id: 'taqdir', name: 'تقدير', description: 'خدمة تقدير', actionType: 'chat' },
-      { id: 'martyr_service', name: 'خدمة شهيد الواجب', description: 'خدمات ذوي الشهداء', actionType: 'chat' },
-      { id: 'tahsin', name: 'خدمة تحسين', description: 'خدمة تحسين البيانات', actionType: 'chat' },
-      { id: 'personal_info', name: 'المعلومات الشخصية', description: 'عرض المعلومات الشخصية', actionType: 'view' },
-      { id: 'my_data', name: 'بيـانـاتـي', description: 'عرض بياناتي الكاملة', actionType: 'direct', agentTool: 'get_my_data' },
-      { id: 'virtual_office', name: 'المكتب الافتراضي', description: 'خدمات المكتب الافتراضي', actionType: 'chat' },
-      { id: 'update_qualification', name: 'تحديث المؤهل الدراسي', description: 'تحديث بيانات المؤهل الدراسي', actionType: 'chat' },
-      { id: 'name_modification', name: 'خدمات تعديل خانات الاسم', description: 'تعديل الاسم في السجلات', actionType: 'chat' },
-      { id: 'profession_modification', name: 'تعديل مهنة مواطن', description: 'تعديل المهنة المسجلة', actionType: 'chat' },
-      { id: 'marital_status_correction', name: 'خدمة تصحيح الحالة الاجتماعية', description: 'تصحيح الحالة الاجتماعية', actionType: 'chat' },
-      { id: 'physical_attributes', name: 'التعديل في العلامة الفارقة والطول ولون الوجه والعينين', description: 'تعديل الصفات الجسدية', actionType: 'chat' },
-      { id: 'link_children_records', name: 'ربط سجلات الأبناء بسجلات والديهم', description: 'ربط سجلات الأبناء', actionType: 'chat' },
+      { 
+        id: 'renew_id', 
+        name: 'تجديد الهوية الوطنية', 
+        description: 'تجديد بطاقة الهوية الوطنية عند انتهاء صلاحيتها',
+        actionType: 'direct', 
+        agentTool: 'renew_id',
+        conditions: ['رفع صورة حديثة', 'سداد رسوم التوصيل (إن تم طلب توصيل)', 'حجز موعد (إن اخترت استلام من الفرع)'],
+        fees: 'مجاني',
+        beneficiary: 'المواطن فقط',
+        howToAccess: 'خدماتي ← الأحوال المدنية ← الهوية الوطنية ← تجديد الهوية'
+      },
+      { 
+        id: 'issue_new_id', 
+        name: 'إصدار هوية وطنية جديدة', 
+        description: 'إصدار بطاقة هوية لأول مرة عند بلوغ السن القانونية',
+        actionType: 'direct', 
+        agentTool: 'issue_new_id',
+        conditions: ['السن 15+', 'صورة شخصية', 'شهادة ميلاد', 'حضور ولي الأمر'],
+        fees: 'مجاني',
+        beneficiary: 'المواطن',
+        howToAccess: 'خدماتي ← الأحوال المدنية ← الهوية الوطنية ← إصدار هوية جديدة'
+      },
+      { 
+        id: 'issue_family_record', 
+        name: 'إصدار سجل الأسرة', 
+        description: 'إصدار سجل الأسرة للأب أو الأم',
+        actionType: 'direct', 
+        agentTool: 'issue_family_record',
+        conditions: ['وجود زواج مسجل', 'وجود أبناء'],
+        fees: 'مجاني',
+        beneficiary: 'المواطن',
+        howToAccess: 'خدماتي ← الأحوال المدنية ← سجل الأسرة ← إصدار سجل الأسرة'
+      },
+      { 
+        id: 'register_newborn', 
+        name: 'تسجيل مولود', 
+        description: 'إضافة مولود جديد إلى السجلات الرسمية',
+        actionType: 'direct', 
+        agentTool: 'register_newborn',
+        conditions: ['بلاغ مستشفى', 'عقد الزواج'],
+        fees: 'مجاني',
+        beneficiary: 'مواطن – مقيم',
+        howToAccess: 'خدماتي ← الأحوال المدنية ← المواليد ← تسجيل مولود'
+      },
+      { 
+        id: 'update_qualification', 
+        name: 'تعديل المؤهل الدراسي', 
+        description: 'تحديث أو تصحيح المؤهل الدراسي في السجلات المدنية',
+        actionType: 'direct', 
+        agentTool: 'update_qualification',
+        conditions: ['رفع شهادة المؤهل', 'مطابقة البيانات'],
+        fees: 'مجاني',
+        beneficiary: 'المواطن',
+        howToAccess: 'خدماتي ← الأحوال المدنية ← تعديل البيانات ← تعديل المؤهل الدراسي'
+      },
+      { 
+        id: 'update_english_name', 
+        name: 'تعديل الاسم باللغة الإنجليزية', 
+        description: 'تصحيح أو تحديث الاسم باللغة الإنجليزية في السجل المدني',
+        actionType: 'direct', 
+        agentTool: 'update_english_name',
+        conditions: ['مطابقة الاسم مع جواز السفر', 'إرفاق المستندات المطلوبة'],
+        fees: 'مجاني',
+        beneficiary: 'المواطن',
+        howToAccess: 'خدماتي ← الأحوال المدنية ← تعديل البيانات ← تعديل الاسم بالإنجليزية'
+      },
     ],
   },
   passports: {
@@ -82,14 +213,83 @@ export const SERVICES: Record<string, ServiceCategoryType> = {
     color: 'text-blue-600',
     bgColor: 'bg-blue-100',
     services: [
-      { id: 'military_travel_inquiry', name: 'الاستفسار عن تصاريح السفر للعسكريين', description: 'استعلام عن تصاريح السفر للعسكريين', actionType: 'chat' },
-      { id: 'passport_contact', name: 'تواصل', description: 'التواصل مع الجوازات', actionType: 'chat' },
-      { id: 'parents_consent', name: 'اشتراطات الوالدين بشأن أخذ موافقتهم', description: 'إدارة موافقات الوالدين للسفر', actionType: 'chat' },
-      { id: 'foster_family_travel', name: 'تصاريح السفر للأسر الحاضنة', description: 'إصدار تصاريح سفر للأسر الحاضنة', actionType: 'chat' },
-      { id: 'passport_services', name: 'خدمات جواز السفر السعودي', description: 'إصدار وتجديد جواز السفر', actionType: 'chat' },
-      { id: 'visitor_services', name: 'خدمات الزوار', description: 'خدمات متعلقة بالزوار', actionType: 'chat' },
-      { id: 'final_exit_report', name: 'تقرير إثبات خروج نهائي', description: 'إصدار تقرير الخروج النهائي', actionType: 'direct', agentTool: 'final_exit_report' },
-      { id: 'resident_stay_report', name: 'تقرير مدة بقاء مقيم', description: 'استعلام عن مدة بقاء المقيم', actionType: 'direct', agentTool: 'resident_stay_report' },
+      { 
+        id: 'renew_passport', 
+        name: 'تجديد جواز السفر السعودي', 
+        description: 'تجديد جواز السفر السعودي إلكترونيًا بالكامل',
+        actionType: 'direct', 
+        agentTool: 'renew_passport',
+        conditions: ['هوية وطنية سارية', 'وجود صورة بالنظام', 'سداد الرسوم'],
+        fees: '300 ريال (5 سنوات) / 600 ريال (10 سنوات)',
+        beneficiary: 'المواطن',
+        howToAccess: 'خدماتي ← الجوازات ← الجواز السعودي ← تجديد جواز'
+      },
+      { 
+        id: 'issue_passport', 
+        name: 'إصدار جواز سفر سعودي', 
+        description: 'إصدار جواز سفر لأول مرة',
+        actionType: 'direct', 
+        agentTool: 'issue_passport',
+        conditions: ['موافقة ولي الأمر تحت سن 21', 'صورة حديثة'],
+        fees: '300 أو 600 ريال حسب مدة الجواز',
+        beneficiary: 'المواطن',
+        howToAccess: 'خدماتي ← الجوازات ← الجواز السعودي ← إصدار جواز'
+      },
+      { 
+        id: 'renew_iqama', 
+        name: 'تجديد إقامة للمقيم', 
+        description: 'تجديد إقامة العمالة المنزلية أو المقيمين للعمل',
+        actionType: 'direct', 
+        agentTool: 'renew_iqama',
+        conditions: ['تأمين طبي', 'سداد رسوم الإقامة', 'عدم وجود مخالفات'],
+        fees: '650 ريال – حسب المهنة والقطاع',
+        beneficiary: 'المقيم – صاحب العمل',
+        howToAccess: 'خدماتي ← الجوازات ← خدمات المقيمين ← تجديد إقامة'
+      },
+      { 
+        id: 'transfer_passport_info', 
+        name: 'نقل معلومات جواز', 
+        description: 'تحديث بيانات الجواز الجديد للعامل أو التابع',
+        actionType: 'direct', 
+        agentTool: 'transfer_passport_info',
+        conditions: ['جواز جديد', 'إقامة سارية'],
+        fees: 'مجاني',
+        beneficiary: 'المقيم',
+        howToAccess: 'خدماتي ← الجوازات ← خدمات المقيمين ← نقل معلومات جواز'
+      },
+      { 
+        id: 'exit_reentry_visa', 
+        name: 'إصدار تأشيرة خروج وعودة', 
+        description: 'إصدار تأشيرة تسمح بالسفر والعودة للمملكة',
+        actionType: 'direct', 
+        agentTool: 'exit_reentry_visa',
+        conditions: ['إقامة سارية', 'جواز ساري', 'سداد الرسوم'],
+        fees: '200 ريال لشهرين + 100 ريال لكل شهر إضافي',
+        beneficiary: 'المقيم',
+        howToAccess: 'خدماتي ← الجوازات ← التأشيرات ← إصدار خروج وعودة'
+      },
+      { 
+        id: 'final_exit_visa', 
+        name: 'إصدار تأشيرة خروج نهائي', 
+        description: 'إنهاء الإقامة ومغادرة المملكة بشكل نهائي',
+        actionType: 'direct', 
+        agentTool: 'final_exit_visa',
+        conditions: ['عدم وجود مخالفات', 'جواز ساري'],
+        fees: 'مجاني',
+        beneficiary: 'المقيم',
+        howToAccess: 'خدماتي ← الجوازات ← التأشيرات ← خروج نهائي'
+      },
+      { 
+        id: 'transfer_sponsorship', 
+        name: 'نقل كفالة (نقل خدمات)', 
+        description: 'نقل العامل من منشأة إلى منشأة أخرى',
+        actionType: 'direct', 
+        agentTool: 'transfer_sponsorship',
+        conditions: ['موافقة الكفيلين', 'سداد رسوم النقل', 'عدم وجود بلاغات أو مخالفات'],
+        fees: '2000 – 4000 ريال حسب النقل',
+        beneficiary: 'المقيم – صاحب العمل',
+        howToAccess: 'خدماتي ← الجوازات ← خدمات المقيمين ← نقل خدمات'
+      },
     ],
   },
 };

@@ -110,11 +110,15 @@ export function useChat({ conversationId, onConversationCreated }: UseChatOption
         content: m.content,
       }));
 
-      // Call AI edge function
+      // Get current user for saving requests
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Call AI edge function with userId for saving requests
       const response = await supabase.functions.invoke('sanad-chat', {
         body: {
           messages: conversationHistory,
           attachments,
+          userId: user?.id,
         },
       });
 

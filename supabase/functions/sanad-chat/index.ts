@@ -6,6 +6,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Full services data for RAG
+const SERVICES_KNOWLEDGE = [
+  // المرور
+  { name: 'تجديد رخصة سير (الاستمارة)', category: 'المرور', fees: '100 ريال لكل سنة', conditions: 'فحص دوري ساري، تأمين ساري، سداد الرسوم، عدم وجود مخالفات' },
+  { name: 'نقل ملكية مركبة (مبايعة)', category: 'المرور', fees: '230 ريال', conditions: 'فحص دوري ساري، تأمين، رخصة سير سارية' },
+  { name: 'تجديد رخصة القيادة', category: 'المرور', fees: '40 ريال لكل سنة', conditions: 'فحص طبي، سداد الرسوم' },
+  { name: 'إصدار رخصة قيادة', category: 'المرور', fees: '100-400 ريال', conditions: 'اجتياز الفحص العملي والنظري، فحص طبي' },
+  { name: 'الاستعلام عن المخالفات', category: 'المرور', fees: 'مجاني', conditions: 'لا يوجد' },
+  { name: 'الاعتراض على المخالفات', category: 'المرور', fees: 'مجاني', conditions: 'خلال 30 يوم، مخالفة رصد آلي' },
+  // الأحوال المدنية
+  { name: 'تجديد الهوية الوطنية', category: 'الأحوال المدنية', fees: 'مجاني', conditions: 'صورة حديثة' },
+  { name: 'إصدار هوية وطنية جديدة', category: 'الأحوال المدنية', fees: 'مجاني', conditions: 'السن 15+، صورة، شهادة ميلاد' },
+  { name: 'إصدار سجل الأسرة', category: 'الأحوال المدنية', fees: 'مجاني', conditions: 'زواج مسجل، وجود أبناء' },
+  { name: 'تسجيل مولود', category: 'الأحوال المدنية', fees: 'مجاني', conditions: 'بلاغ مستشفى، عقد الزواج' },
+  // الجوازات
+  { name: 'تجديد جواز السفر السعودي', category: 'الجوازات', fees: '300 ريال (5 سنوات) / 600 ريال (10 سنوات)', conditions: 'هوية سارية، صورة، سداد الرسوم' },
+  { name: 'إصدار جواز سفر سعودي', category: 'الجوازات', fees: '300 أو 600 ريال', conditions: 'موافقة ولي الأمر لمن تحت 21' },
+  { name: 'تجديد إقامة', category: 'الجوازات', fees: '650 ريال وأكثر', conditions: 'تأمين طبي، سداد الرسوم' },
+  { name: 'تأشيرة خروج وعودة', category: 'الجوازات', fees: '200 ريال لشهرين + 100 لكل شهر', conditions: 'إقامة وجواز ساريين' },
+  { name: 'تأشيرة خروج نهائي', category: 'الجوازات', fees: 'مجاني', conditions: 'عدم وجود مخالفات، جواز ساري' },
+  { name: 'نقل كفالة', category: 'الجوازات', fees: '2000-4000 ريال', conditions: 'موافقة الكفيلين، عدم وجود بلاغات' },
+];
+
 // Agent tools definitions
 const agentTools = [
   {
@@ -13,16 +36,7 @@ const agentTools = [
     function: {
       name: "check_fines",
       description: "استعلام عن المخالفات المرورية للمستخدم",
-      parameters: {
-        type: "object",
-        properties: {
-          national_id: {
-            type: "string",
-            description: "رقم الهوية الوطنية"
-          }
-        },
-        required: []
-      }
+      parameters: { type: "object", properties: {}, required: [] }
     }
   },
   {
@@ -32,12 +46,7 @@ const agentTools = [
       description: "دفع مخالفة مرورية",
       parameters: {
         type: "object",
-        properties: {
-          fine_id: {
-            type: "string",
-            description: "رقم المخالفة"
-          }
-        },
+        properties: { fine_id: { type: "string", description: "رقم المخالفة" } },
         required: ["fine_id"]
       }
     }
@@ -49,17 +58,58 @@ const agentTools = [
       description: "تجديد رخصة القيادة",
       parameters: {
         type: "object",
-        properties: {
-          license_number: {
-            type: "string",
-            description: "رقم الرخصة"
-          },
-          duration_years: {
-            type: "number",
-            description: "مدة التجديد بالسنوات (5 أو 10)"
-          }
-        },
+        properties: { duration_years: { type: "number", description: "مدة التجديد (5 أو 10 سنوات)" } },
         required: ["duration_years"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "issue_license",
+      description: "إصدار رخصة قيادة جديدة",
+      parameters: { type: "object", properties: {}, required: [] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "renew_vehicle_registration",
+      description: "تجديد رخصة سير المركبة (الاستمارة)",
+      parameters: {
+        type: "object",
+        properties: { plate_number: { type: "string", description: "رقم اللوحة" } },
+        required: []
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "transfer_vehicle_ownership",
+      description: "نقل ملكية مركبة (مبايعة)",
+      parameters: {
+        type: "object",
+        properties: { 
+          buyer_id: { type: "string", description: "هوية المشتري" },
+          plate_number: { type: "string", description: "رقم اللوحة" }
+        },
+        required: []
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "violation_objection",
+      description: "الاعتراض على مخالفة مرورية",
+      parameters: {
+        type: "object",
+        properties: { 
+          violation_number: { type: "string", description: "رقم المخالفة" },
+          reason: { type: "string", description: "سبب الاعتراض" }
+        },
+        required: ["violation_number", "reason"]
       }
     }
   },
@@ -71,38 +121,11 @@ const agentTools = [
       parameters: {
         type: "object",
         properties: {
-          service_type: {
-            type: "string",
-            description: "نوع الخدمة"
-          },
-          department: {
-            type: "string",
-            enum: ["passports", "traffic", "civil_affairs"],
-            description: "الجهة الحكومية"
-          },
-          preferred_date: {
-            type: "string",
-            description: "التاريخ المفضل"
-          }
+          service_type: { type: "string", description: "نوع الخدمة" },
+          department: { type: "string", enum: ["passports", "traffic", "civil_affairs"], description: "الجهة" },
+          preferred_date: { type: "string", description: "التاريخ المفضل" }
         },
         required: ["service_type", "department"]
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "track_request",
-      description: "تتبع حالة طلب سابق",
-      parameters: {
-        type: "object",
-        properties: {
-          request_number: {
-            type: "string",
-            description: "رقم الطلب"
-          }
-        },
-        required: ["request_number"]
       }
     }
   },
@@ -113,16 +136,7 @@ const agentTools = [
       description: "تجديد جواز السفر",
       parameters: {
         type: "object",
-        properties: {
-          passport_number: {
-            type: "string",
-            description: "رقم الجواز"
-          },
-          duration_years: {
-            type: "number",
-            description: "مدة الجواز الجديد (5 أو 10 سنوات)"
-          }
-        },
+        properties: { duration_years: { type: "number", description: "مدة الجواز (5 أو 10)" } },
         required: ["duration_years"]
       }
     }
@@ -132,16 +146,7 @@ const agentTools = [
     function: {
       name: "issue_passport",
       description: "إصدار جواز سفر جديد",
-      parameters: {
-        type: "object",
-        properties: {
-          reason: {
-            type: "string",
-            description: "سبب الإصدار"
-          }
-        },
-        required: []
-      }
+      parameters: { type: "object", properties: {}, required: [] }
     }
   },
   {
@@ -151,13 +156,7 @@ const agentTools = [
       description: "تجديد الهوية الوطنية",
       parameters: {
         type: "object",
-        properties: {
-          delivery_type: {
-            type: "string",
-            enum: ["mail", "office"],
-            description: "طريقة الاستلام"
-          }
-        },
+        properties: { delivery_type: { type: "string", enum: ["mail", "office"], description: "طريقة الاستلام" } },
         required: []
       }
     }
@@ -165,25 +164,20 @@ const agentTools = [
   {
     type: "function",
     function: {
-      name: "family_visit_visa",
-      description: "إصدار تأشيرة زيارة عائلية",
+      name: "issue_new_id",
+      description: "إصدار هوية وطنية جديدة",
+      parameters: { type: "object", properties: {}, required: [] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "renew_iqama",
+      description: "تجديد إقامة للمقيم",
       parameters: {
         type: "object",
-        properties: {
-          relative_name: {
-            type: "string",
-            description: "اسم القريب"
-          },
-          relationship: {
-            type: "string",
-            description: "صلة القرابة"
-          },
-          duration_months: {
-            type: "number",
-            description: "مدة التأشيرة بالأشهر"
-          }
-        },
-        required: ["relative_name", "relationship", "duration_months"]
+        properties: { iqama_number: { type: "string", description: "رقم الإقامة" } },
+        required: []
       }
     }
   },
@@ -195,15 +189,8 @@ const agentTools = [
       parameters: {
         type: "object",
         properties: {
-          visa_type: {
-            type: "string",
-            enum: ["single", "multiple"],
-            description: "نوع التأشيرة (مفردة أو متعددة)"
-          },
-          duration_months: {
-            type: "number",
-            description: "مدة التأشيرة بالأشهر"
-          }
+          visa_type: { type: "string", enum: ["single", "multiple"], description: "نوع التأشيرة" },
+          duration_months: { type: "number", description: "المدة بالأشهر" }
         },
         required: ["visa_type"]
       }
@@ -212,33 +199,19 @@ const agentTools = [
   {
     type: "function",
     function: {
-      name: "check_visa_status",
-      description: "الاستعلام عن حالة التأشيرة",
-      parameters: {
-        type: "object",
-        properties: {
-          visa_number: {
-            type: "string",
-            description: "رقم التأشيرة"
-          }
-        },
-        required: []
-      }
+      name: "final_exit_visa",
+      description: "إصدار تأشيرة خروج نهائي",
+      parameters: { type: "object", properties: {}, required: [] }
     }
   },
   {
     type: "function",
     function: {
       name: "search_knowledge",
-      description: "البحث في قاعدة المعرفة للحصول على معلومات عن الخدمات الحكومية",
+      description: "البحث في قاعدة المعرفة للحصول على معلومات عن الخدمات الحكومية ومتطلباتها ورسومها",
       parameters: {
         type: "object",
-        properties: {
-          query: {
-            type: "string",
-            description: "نص البحث"
-          }
-        },
+        properties: { query: { type: "string", description: "نص البحث" } },
         required: ["query"]
       }
     }
@@ -246,12 +219,11 @@ const agentTools = [
 ];
 
 // Execute agent tool
-async function executeTool(toolName: string, args: Record<string, unknown>, supabaseClient: any): Promise<{ status: string; message: string; data?: unknown }> {
+async function executeTool(toolName: string, args: Record<string, unknown>, supabaseClient: any, userId?: string): Promise<{ status: string; message: string; data?: unknown }> {
   console.log(`Executing tool: ${toolName}`, args);
   
   switch (toolName) {
     case "check_fines": {
-      // Simulate checking fines
       const fines = [
         { id: "F001", amount: 150, reason: "تجاوز السرعة المحددة", date: "2024-01-15", location: "طريق الملك فهد" },
         { id: "F002", amount: 500, reason: "قطع إشارة حمراء", date: "2024-02-20", location: "تقاطع العليا" },
@@ -273,11 +245,44 @@ async function executeTool(toolName: string, args: Record<string, unknown>, supa
     }
 
     case "renew_license": {
-      const fees = args.duration_years === 10 ? 160 : 80;
+      const duration = Number(args.duration_years) || 5;
+      const fees = duration * 40;
       return {
         status: "success",
-        message: `تم تقديم طلب تجديد الرخصة لمدة ${args.duration_years} سنوات. الرسوم المطلوبة: ${fees} ريال. سيتم إرسال الرخصة الجديدة لعنوانك الوطني.`,
-        data: { request_number: `LR${Date.now()}`, fees, duration: args.duration_years }
+        message: `تم تقديم طلب تجديد الرخصة لمدة ${duration} سنوات. الرسوم: ${fees} ريال. سيتم إرسال الرخصة لعنوانك الوطني.`,
+        data: { request_number: `LR${Date.now().toString().slice(-6)}`, fees, duration }
+      };
+    }
+
+    case "issue_license": {
+      return {
+        status: "pending",
+        message: `لإصدار رخصة قيادة جديدة، يجب اجتياز التدريب في مدرسة قيادة معتمدة. الرسوم: 100-400 ريال حسب نوع الرخصة.`,
+        data: { requirements: ["فحص طبي", "فحص نظري", "فحص عملي", "إتمام الساعات التدريبية"] }
+      };
+    }
+
+    case "renew_vehicle_registration": {
+      return {
+        status: "success",
+        message: `تم تجديد رخصة سير المركبة. الرسوم: 100 ريال. رقم الطلب: VR${Date.now().toString().slice(-6)}`,
+        data: { request_number: `VR${Date.now().toString().slice(-6)}`, fees: 100 }
+      };
+    }
+
+    case "transfer_vehicle_ownership": {
+      return {
+        status: "success",
+        message: `تم تقديم طلب نقل ملكية المركبة. الرسوم: 230 ريال. سيتم إشعار المشتري لتأكيد العملية.`,
+        data: { request_number: `TO${Date.now().toString().slice(-6)}`, fees: 230 }
+      };
+    }
+
+    case "violation_objection": {
+      return {
+        status: "success",
+        message: `تم تقديم اعتراض على المخالفة رقم ${args.violation_number}. سيتم مراجعة الاعتراض خلال 30 يوم عمل.`,
+        data: { objection_number: `OB${Date.now().toString().slice(-6)}`, violation: args.violation_number }
       };
     }
 
@@ -285,138 +290,120 @@ async function executeTool(toolName: string, args: Record<string, unknown>, supa
       const appointmentDate = new Date();
       appointmentDate.setDate(appointmentDate.getDate() + 7);
       const dateStr = appointmentDate.toLocaleDateString('ar-SA');
+      const deptName = args.department === 'passports' ? 'الجوازات' : args.department === 'traffic' ? 'المرور' : 'الأحوال المدنية';
+      
+      // Save appointment to database if userId provided
+      if (userId) {
+        await supabaseClient.from('appointments').insert({
+          user_id: userId,
+          title: `موعد ${deptName}`,
+          appointment_date: appointmentDate.toISOString().split('T')[0],
+          appointment_time: '09:00',
+          service_type: args.service_type || deptName,
+          location: `فرع ${deptName} الرئيسي`,
+          status: 'scheduled'
+        });
+      }
+      
       return {
         status: "success",
-        message: `تم حجز موعد بنجاح في ${args.department === 'passports' ? 'الجوازات' : args.department === 'traffic' ? 'المرور' : 'الأحوال المدنية'} يوم ${dateStr} الساعة 9:00 صباحاً. رقم الحجز: A${Date.now().toString().slice(-6)}`,
-        data: { 
-          appointment_number: `A${Date.now().toString().slice(-6)}`,
-          date: dateStr,
-          time: "09:00",
-          department: args.department
-        }
-      };
-    }
-
-    case "track_request": {
-      return {
-        status: "success",
-        message: `الطلب رقم ${args.request_number}: قيد المعالجة. المرحلة الحالية: مراجعة المستندات. الوقت المتوقع للانتهاء: 3-5 أيام عمل.`,
-        data: { 
-          request_number: args.request_number,
-          status: "processing",
-          stage: "document_review",
-          estimated_completion: "3-5 أيام"
-        }
+        message: `تم حجز موعد في ${deptName} يوم ${dateStr} الساعة 9:00 صباحاً.`,
+        data: { appointment_number: `A${Date.now().toString().slice(-6)}`, date: dateStr, time: "09:00" }
       };
     }
 
     case "renew_passport": {
-      const fees = args.duration_years === 10 ? 600 : 300;
+      const duration = Number(args.duration_years) || 5;
+      const fees = duration === 10 ? 600 : 300;
       return {
         status: "success",
-        message: `تم تقديم طلب تجديد الجواز لمدة ${args.duration_years} سنوات. الرسوم: ${fees} ريال. رقم الطلب: P${Date.now().toString().slice(-6)}. سيتم إرسال الجواز الجديد عبر البريد.`,
-        data: { 
-          request_number: `P${Date.now().toString().slice(-6)}`,
-          fees,
-          duration: args.duration_years
-        }
+        message: `تم تقديم طلب تجديد الجواز لمدة ${duration} سنوات. الرسوم: ${fees} ريال. سيتم إرسال الجواز عبر البريد.`,
+        data: { request_number: `P${Date.now().toString().slice(-6)}`, fees, duration }
       };
     }
 
     case "issue_passport": {
       return {
         status: "pending",
-        message: `لإصدار جواز سفر جديد، يرجى حجز موعد في الجوازات وإحضار: الهوية الوطنية، صور شخصية بخلفية بيضاء. هل تريد حجز موعد الآن؟`,
-        data: { 
-          requirements: ["الهوية الوطنية", "صور شخصية بخلفية بيضاء", "حضور شخصي"],
-          fees: 300
-        }
+        message: `لإصدار جواز سفر جديد، يرجى حجز موعد في الجوازات. المتطلبات: الهوية الوطنية، صور شخصية بخلفية بيضاء.`,
+        data: { requirements: ["الهوية الوطنية", "صور شخصية بخلفية بيضاء"], fees: 300 }
       };
     }
 
     case "renew_id": {
+      const delivery = args.delivery_type === 'office' ? 'استلام من الفرع' : 'توصيل للعنوان الوطني';
       return {
         status: "success",
-        message: `تم تقديم طلب تجديد الهوية الوطنية. الرسوم: 100 ريال. ${args.delivery_type === 'mail' ? 'سيتم إرسالها لعنوانك الوطني' : 'يمكنك استلامها من مكتب الأحوال المدنية'}. رقم الطلب: ID${Date.now().toString().slice(-6)}`,
-        data: {
-          request_number: `ID${Date.now().toString().slice(-6)}`,
-          fees: 100,
-          delivery: args.delivery_type || 'mail'
-        }
+        message: `تم تقديم طلب تجديد الهوية الوطنية. ${delivery}. مجاني.`,
+        data: { request_number: `ID${Date.now().toString().slice(-6)}`, delivery, fees: 0 }
       };
     }
 
-    case "family_visit_visa": {
-      const fees = (args.duration_months as number || 1) * 300;
+    case "issue_new_id": {
+      return {
+        status: "pending",
+        message: `لإصدار هوية وطنية جديدة، يجب حضور ولي الأمر مع المستفيد إلى مكتب الأحوال المدنية. مجاني.`,
+        data: { requirements: ["صورة شخصية", "شهادة الميلاد", "حضور ولي الأمر"], fees: 0 }
+      };
+    }
+
+    case "renew_iqama": {
       return {
         status: "success",
-        message: `تم تقديم طلب تأشيرة زيارة عائلية لـ ${args.relative_name} (${args.relationship}) لمدة ${args.duration_months} شهر. الرسوم: ${fees} ريال. رقم الطلب: V${Date.now().toString().slice(-6)}`,
-        data: {
-          request_number: `V${Date.now().toString().slice(-6)}`,
-          fees,
-          duration: args.duration_months,
-          relative: args.relative_name
-        }
+        message: `تم تقديم طلب تجديد الإقامة. الرسوم: 650 ريال. رقم الطلب: IQ${Date.now().toString().slice(-6)}`,
+        data: { request_number: `IQ${Date.now().toString().slice(-6)}`, fees: 650 }
       };
     }
 
     case "exit_reentry_visa": {
       const fees = args.visa_type === 'multiple' ? 500 : 200;
+      const type = args.visa_type === 'multiple' ? 'متعددة' : 'مفردة';
       return {
         status: "success",
-        message: `تم إصدار تأشيرة خروج وعودة ${args.visa_type === 'multiple' ? 'متعددة' : 'مفردة'}. الرسوم: ${fees} ريال. صالحة لمدة ${args.duration_months || 2} شهر.`,
-        data: {
-          visa_number: `ER${Date.now().toString().slice(-6)}`,
-          type: args.visa_type,
-          fees,
-          valid_until: new Date(Date.now() + (args.duration_months as number || 2) * 30 * 24 * 60 * 60 * 1000).toLocaleDateString('ar-SA')
-        }
+        message: `تم إصدار تأشيرة خروج وعودة ${type}. الرسوم: ${fees} ريال.`,
+        data: { visa_number: `ER${Date.now().toString().slice(-6)}`, type, fees }
       };
     }
 
-    case "check_visa_status": {
-      // Simulate checking visa status
+    case "final_exit_visa": {
       return {
         status: "success",
-        message: "تم العثور على التأشيرات الخاصة بك",
-        data: {
-          visas: [
-            { number: "V123456", type: "خروج وعودة مفردة", status: "صالحة", expiry: "2025-06-15" },
-          ],
-          total_requests: 1,
-          total_issued: 1,
-          balance: 0
-        }
+        message: `تم إصدار تأشيرة خروج نهائي. مجاني. يجب المغادرة خلال 60 يوم.`,
+        data: { visa_number: `FE${Date.now().toString().slice(-6)}`, fees: 0 }
       };
     }
 
     case "search_knowledge": {
-      // Search in knowledge base
-      const { data: results } = await supabaseClient
+      const query = (args.query as string || '').toLowerCase();
+      
+      // Search in database first
+      const { data: dbResults } = await supabaseClient
         .from('knowledge_base')
         .select('title, content, category')
-        .textSearch('content', args.query as string, { type: 'websearch', config: 'arabic' })
         .limit(3);
       
-      if (results && results.length > 0) {
-        return {
-          status: "success",
-          message: "تم العثور على معلومات ذات صلة",
-          data: { results }
-        };
-      } else {
-        // Fallback: simple keyword search
-        const { data: fallbackResults } = await supabaseClient
-          .from('knowledge_base')
-          .select('title, content, category')
-          .limit(5);
-        
-        return {
-          status: "success", 
-          message: "معلومات عامة عن الخدمات",
-          data: { results: fallbackResults || [] }
-        };
-      }
+      // Also search in embedded knowledge
+      const relevantServices = SERVICES_KNOWLEDGE.filter(s => 
+        s.name.includes(query) || 
+        s.category.includes(query) || 
+        query.includes(s.name) ||
+        query.includes(s.category)
+      );
+      
+      const results = [
+        ...(dbResults || []),
+        ...relevantServices.map(s => ({
+          title: s.name,
+          content: `الرسوم: ${s.fees}. الشروط: ${s.conditions}`,
+          category: s.category
+        }))
+      ];
+      
+      return {
+        status: "success",
+        message: results.length > 0 ? "تم العثور على معلومات" : "لم يتم العثور على نتائج مطابقة",
+        data: { results: results.slice(0, 5) }
+      };
     }
 
     default:
@@ -434,53 +421,78 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, tool, args, messages, attachments } = body;
+    const { action, tool, args, messages, attachments, userId } = body;
     
-    // Create Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
     
     // Handle direct tool execution
     if (action === 'execute_tool' && tool) {
-      const result = await executeTool(tool, args || {}, supabaseClient);
+      const result = await executeTool(tool, args || {}, supabaseClient, userId);
+      
+      // Save to service_requests if userId provided
+      if (userId && result.status !== 'error') {
+        await supabaseClient.from('service_requests').insert({
+          user_id: userId,
+          service_type: tool,
+          service_category: 'direct',
+          status: result.status === 'success' ? 'completed' : 'pending',
+          request_data: { tool, args, execution_type: 'agent' },
+          result_data: result.data || null
+        });
+      }
+      
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Build RAG context
+    const servicesContext = SERVICES_KNOWLEDGE.map(s => 
+      `- ${s.name} (${s.category}): الرسوم ${s.fees}، الشروط: ${s.conditions}`
+    ).join('\n');
 
+    // Build system prompt with RAG + Agent capabilities
+    const systemPrompt = `أنت "سَنَد"، مساعد ذكي للخدمات الحكومية السعودية. لديك قدرتان رئيسيتان:
 
-    // Build system prompt
-    const systemPrompt = `أنت "سَنَد"، مساعد ذكي للخدمات الحكومية السعودية. مهمتك مساعدة المواطنين في:
+## 1. الإجابة على الأسئلة (RAG)
+عند سؤال المستخدم عن معلومات أو استفسارات، استخدم المعرفة التالية:
 
-1. **الإجابة على الأسئلة**: استخدم أداة search_knowledge للبحث في قاعدة المعرفة وتقديم معلومات دقيقة عن الخدمات.
+${servicesContext}
 
-2. **تنفيذ الخدمات**: عندما يطلب المستخدم خدمة، استخدم الأداة المناسبة لتنفيذها:
-   - check_fines: للاستعلام عن المخالفات المرورية
-   - pay_fine: لدفع مخالفة
-   - renew_license: لتجديد رخصة القيادة
-   - book_appointment: لحجز موعد
-   - renew_passport: لتجديد الجواز
-   - renew_id: لتجديد الهوية الوطنية
-   - family_visit_visa: لإصدار تأشيرة زيارة عائلية
-   - exit_reentry_visa: لإصدار تأشيرة خروج وعودة
+## 2. تنفيذ الخدمات (Agent)
+عند طلب المستخدم تنفيذ خدمة، استخدم الأداة المناسبة:
+- check_fines: للاستعلام عن المخالفات المرورية
+- pay_fine: لدفع مخالفة
+- renew_license: لتجديد رخصة القيادة
+- issue_license: لإصدار رخصة قيادة
+- renew_vehicle_registration: لتجديد استمارة المركبة
+- transfer_vehicle_ownership: لنقل ملكية مركبة
+- violation_objection: للاعتراض على مخالفة
+- book_appointment: لحجز موعد
+- renew_passport: لتجديد الجواز
+- issue_passport: لإصدار جواز جديد
+- renew_id: لتجديد الهوية الوطنية
+- issue_new_id: لإصدار هوية جديدة
+- renew_iqama: لتجديد الإقامة
+- exit_reentry_visa: لتأشيرة خروج وعودة
+- final_exit_visa: لتأشيرة خروج نهائي
+- search_knowledge: للبحث عن معلومات إضافية
 
-3. **فهم الصور**: إذا أرسل المستخدم صورة لمخالفة أو مستند، حاول فهم محتواها ومساعدته.
+## تعليمات مهمة:
+- حدد نوع الطلب: استفسار أو تنفيذ خدمة
+- للاستفسارات: أجب من المعرفة المتاحة مباشرة
+- للتنفيذ: استخدم الأداة المناسبة
+- تحدث بالعربية الفصحى بأسلوب ودود
+- اسأل عن التفاصيل الناقصة قبل التنفيذ
+- أكد نجاح العملية مع رقم المرجع`;
 
-**تعليمات مهمة:**
-- تحدث بالعربية الفصحى بأسلوب ودود ومهني
-- قدم معلومات دقيقة ومحدثة
-- اسأل عن التفاصيل الناقصة قبل تنفيذ الخدمة
-- أكد للمستخدم نجاح العملية وقدم رقم المرجع
-- إذا لم تعرف الإجابة، اعترف بذلك واقترح التواصل مع الجهة المختصة`;
-
-    // Prepare messages for AI
     const aiMessages = [
       { role: "system", content: systemPrompt },
       ...messages
@@ -502,7 +514,7 @@ serve(async (req) => {
       }
     }
 
-    // Call Lovable AI Gateway
+    // Call AI
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -519,9 +531,6 @@ serve(async (req) => {
 
     if (!response.ok) {
       const status = response.status;
-      const errorText = await response.text();
-      console.error("AI gateway error:", status, errorText);
-      
       if (status === 429) {
         return new Response(JSON.stringify({ error: "تم تجاوز الحد المسموح، يرجى المحاولة لاحقاً" }), {
           status: 429,
@@ -548,8 +557,20 @@ serve(async (req) => {
         const toolName = toolCall.function.name;
         const toolArgs = JSON.parse(toolCall.function.arguments || "{}");
         
-        const result = await executeTool(toolName, toolArgs, supabaseClient);
+        const result = await executeTool(toolName, toolArgs, supabaseClient, userId);
         toolCalls.push({ name: toolName, result });
+        
+        // Save to service_requests
+        if (userId && toolName !== 'search_knowledge') {
+          await supabaseClient.from('service_requests').insert({
+            user_id: userId,
+            service_type: toolName,
+            service_category: 'chat',
+            status: result.status === 'success' ? 'completed' : 'pending',
+            request_data: { tool: toolName, args: toolArgs, execution_type: 'agent' },
+            result_data: result.data || null
+          });
+        }
       }
 
       // Get final response after tool execution
@@ -567,11 +588,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
-          messages: [
-            ...aiMessages,
-            aiMessage,
-            ...toolMessages
-          ],
+          messages: [...aiMessages, aiMessage, ...toolMessages],
         }),
       });
 
@@ -580,17 +597,14 @@ serve(async (req) => {
       }
 
       const finalResult = await finalResponse.json();
-      const finalContent = finalResult.choices[0].message.content;
-
       return new Response(JSON.stringify({
-        content: finalContent,
+        content: finalResult.choices[0].message.content,
         toolCalls
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // No tool calls, return direct response
     return new Response(JSON.stringify({
       content: aiMessage.content,
       toolCalls: []
