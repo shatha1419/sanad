@@ -263,9 +263,9 @@ export default function Index() {
             <AppointmentCalendar />
             
             {/* SANAD Card - Part of grid */}
-            <Card
+            <div
               onClick={() => navigate('/chat')}
-              className="cursor-pointer hover:shadow-sanad transition-all duration-200 overflow-hidden relative border-0"
+              className="cursor-pointer hover:shadow-sanad transition-all duration-200 overflow-hidden relative rounded-lg"
               style={{
                 background: 'linear-gradient(135deg, hsl(152, 45%, 42%) 0%, hsl(168, 50%, 48%) 100%)'
               }}
@@ -283,17 +283,15 @@ export default function Index() {
                   )`
                 }}
               />
-              <CardContent className="p-0 flex flex-col items-center justify-center h-full relative z-10">
-                <div className="p-4 flex-1 flex items-center justify-center">
-                  <img 
-                    src={sanadLogo} 
-                    alt="سند" 
-                    className="h-20 object-contain"
-                  />
-                </div>
-                <div className="w-full border-t border-white/20"></div>
-              </CardContent>
-            </Card>
+              <div className="p-4 flex flex-col items-center justify-center h-full relative z-10">
+                <img 
+                  src={sanadLogo} 
+                  alt="سند" 
+                  className="h-16 object-contain"
+                />
+              </div>
+              <div className="w-full border-t border-white/20"></div>
+            </div>
           </div>
 
           {/* Other Services Section */}
