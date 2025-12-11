@@ -4,6 +4,8 @@ import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import absherLogo from '@/assets/absher-logo.png';
+import moi2030Logo from '@/assets/moi-2030-logo.png';
 
 // Custom SVG Icons matching Absher style
 const LaptopIcon = () => (
@@ -181,8 +183,8 @@ export default function Index() {
   return (
     <Layout>
       <div className="min-h-screen bg-background">
-        {/* Header - Absher Style - Exact Match */}
-        <header className="bg-card px-4 py-6">
+        {/* Header - Absher Style */}
+        <header className="bg-card px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Menu Icon - Left (3 thick green bars) */}
             <button className="p-1">
@@ -193,71 +195,19 @@ export default function Index() {
               </div>
             </button>
 
-            {/* Language Switch - Center */}
-            <button className="flex flex-col items-center border-2 border-primary/40 rounded-xl px-8 py-4 bg-card shadow-sm">
-              <div className="flex items-center">
-                <span className="text-primary text-3xl" style={{ fontFamily: 'serif' }}>ع</span>
-                <svg className="w-8 h-8 text-primary mx-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  {/* Curved arrows */}
-                  <path d="M7 10c0-3 2.5-5 5.5-4.5" strokeLinecap="round"/>
-                  <path d="M12 4l1 2.5" strokeLinecap="round"/>
-                  <path d="M12 4l2.5-0.5" strokeLinecap="round"/>
-                  <path d="M17 14c0 3-2.5 5-5.5 4.5" strokeLinecap="round"/>
-                  <path d="M12 20l-1-2.5" strokeLinecap="round"/>
-                  <path d="M12 20l-2.5 0.5" strokeLinecap="round"/>
-                </svg>
-                <span className="text-primary text-2xl font-medium">E</span>
-              </div>
-              <span className="text-base text-foreground mt-2 font-medium">English</span>
-            </button>
+            {/* MOI + Vision 2030 Logo - Left/Center */}
+            <img 
+              src={moi2030Logo} 
+              alt="وزارة الداخلية ورؤية 2030" 
+              className="h-14 object-contain"
+            />
 
-            {/* Vision 2030 & Absher Logo - Right */}
-            <div className="flex items-center gap-4">
-              {/* Vision 2030 */}
-              <div className="text-right leading-tight">
-                <div className="flex items-center justify-end gap-2 mb-1">
-                  <span className="text-xs text-muted-foreground font-medium">رؤيـــة</span>
-                  <span className="text-xs text-muted-foreground font-medium">VISION</span>
-                </div>
-                <div className="flex items-center justify-end">
-                  <span className="text-primary font-bold text-3xl">2</span>
-                  <svg viewBox="0 0 50 50" className="w-10 h-10">
-                    {/* Outer ring */}
-                    <circle cx="25" cy="25" r="13" fill="none" stroke="hsl(var(--primary))" strokeWidth="1.5"/>
-                    {/* Colorful decorative dots */}
-                    <circle cx="25" cy="10" r="2.5" fill="#3b82f6"/>
-                    <circle cx="35" cy="14" r="2.5" fill="#22c55e"/>
-                    <circle cx="40" cy="25" r="2.5" fill="#eab308"/>
-                    <circle cx="35" cy="36" r="2.5" fill="#3b82f6"/>
-                    <circle cx="25" cy="40" r="2.5" fill="#22c55e"/>
-                    <circle cx="15" cy="36" r="2.5" fill="#eab308"/>
-                    <circle cx="10" cy="25" r="2.5" fill="#3b82f6"/>
-                    <circle cx="15" cy="14" r="2.5" fill="#22c55e"/>
-                    {/* Center palm tree icon simplified */}
-                    <circle cx="25" cy="25" r="4" fill="hsl(var(--primary))"/>
-                  </svg>
-                  <span className="text-primary font-bold text-3xl">3</span>
-                  <span className="text-primary font-bold text-3xl">0</span>
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">المملكة العربية السعودية</p>
-                <p className="text-[9px] text-muted-foreground">KINGDOM OF SAUDI ARABIA</p>
-              </div>
-              
-              {/* Divider */}
-              <div className="w-px h-16 bg-muted-foreground/30"></div>
-              
-              {/* Absher Logo (ascending bars with أبشر text) */}
-              <div className="flex flex-col items-center">
-                <div className="flex items-end gap-[4px]">
-                  <div className="w-[6px] h-5 bg-primary rounded-[1px]"></div>
-                  <div className="w-[6px] h-7 bg-primary rounded-[1px]"></div>
-                  <div className="w-[6px] h-9 bg-primary rounded-[1px]"></div>
-                  <div className="w-[6px] h-11 bg-primary rounded-[1px]"></div>
-                  <div className="w-[6px] h-[52px] bg-primary rounded-[1px]"></div>
-                </div>
-                <p className="text-sm font-bold text-primary mt-1">أبشــر</p>
-              </div>
-            </div>
+            {/* Absher Logo - Right */}
+            <img 
+              src={absherLogo} 
+              alt="أبشر" 
+              className="h-14 object-contain"
+            />
           </div>
         </header>
 
