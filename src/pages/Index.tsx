@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import absherLogo from '@/assets/absher-logo.png';
 import moi2030Logo from '@/assets/moi-2030-logo.png';
-import sanadLogo from '@/assets/sanad-logo.jpeg';
+import sanadLogo from '@/assets/sanad-logo-new.jpeg';
 import { Sidebar } from '@/components/Sidebar';
 import { AppointmentCalendar } from '@/components/AppointmentCalendar';
 
@@ -265,15 +265,31 @@ export default function Index() {
             {/* SANAD Card - Part of grid */}
             <Card
               onClick={() => navigate('/chat')}
-              className="cursor-pointer hover:shadow-sanad transition-all duration-200 bg-white border border-border overflow-hidden"
+              className="cursor-pointer hover:shadow-sanad transition-all duration-200 border border-border overflow-hidden relative"
+              style={{
+                background: 'linear-gradient(135deg, hsl(152, 45%, 42%) 0%, hsl(168, 50%, 48%) 100%)'
+              }}
             >
-              <CardContent className="p-4 flex flex-col items-center justify-center h-full">
+              {/* Subtle diagonal lines pattern */}
+              <div 
+                className="absolute inset-0 opacity-10"
+                style={{
+                  backgroundImage: `repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(255,255,255,0.3) 10px,
+                    rgba(255,255,255,0.3) 11px
+                  )`
+                }}
+              />
+              <CardContent className="p-4 flex flex-col items-center justify-center h-full relative z-10">
                 <img 
                   src={sanadLogo} 
                   alt="سند" 
                   className="h-20 object-contain"
                 />
-                <div className="w-full border-t border-border mt-3"></div>
+                <div className="w-full border-t border-white/20 mt-3"></div>
               </CardContent>
             </Card>
           </div>
