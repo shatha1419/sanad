@@ -1,5 +1,4 @@
 import { ReactNode } from 'react';
-import { FloatingChat } from '@/components/FloatingChat';
 
 interface LayoutProps {
   children: ReactNode;
@@ -11,7 +10,6 @@ export function Layout({ children }: LayoutProps) {
       <main>
         {children}
       </main>
-      <FloatingChat />
     </div>
   );
 }
