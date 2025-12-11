@@ -265,32 +265,17 @@ export default function Index() {
             {/* SANAD Card - Part of grid */}
             <div
               onClick={() => navigate('/chat')}
-              className="cursor-pointer hover:shadow-sanad transition-all duration-200 overflow-hidden relative rounded-lg"
+              className="cursor-pointer hover:shadow-sanad transition-all duration-200 overflow-hidden rounded-lg bg-cover bg-center"
               style={{
-                background: 'linear-gradient(135deg, hsl(152, 45%, 42%) 0%, hsl(168, 50%, 48%) 100%)'
+                backgroundImage: `url(${sanadLogo})`
               }}
             >
-              {/* Subtle diagonal lines pattern */}
-              <div 
-                className="absolute inset-0 opacity-10"
-                style={{
-                  backgroundImage: `repeating-linear-gradient(
-                    45deg,
-                    transparent,
-                    transparent 10px,
-                    rgba(255,255,255,0.3) 10px,
-                    rgba(255,255,255,0.3) 11px
-                  )`
-                }}
-              />
-              <div className="p-4 flex flex-col items-center justify-center h-full relative z-10">
-                <img 
-                  src={sanadLogo} 
-                  alt="سند" 
-                  className="h-16 object-contain"
-                />
+              <div className="p-5 flex flex-col items-center h-full">
+                <div className="flex-1 flex items-center justify-center mb-3">
+                  {/* Empty space for logo which is in background */}
+                </div>
+                <div className="w-full h-px bg-border"></div>
               </div>
-              <div className="w-full border-t border-white/20"></div>
             </div>
           </div>
 
