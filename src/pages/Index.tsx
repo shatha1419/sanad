@@ -108,6 +108,40 @@ const AuctionIcon = () => (
   </svg>
 );
 
+const TravelBanIcon = () => (
+  <svg viewBox="0 0 48 48" className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <path d="M12 38l24-28" strokeWidth="2" />
+    <path d="M34 14l4-4-8-2 2 8 4-4z" />
+    <circle cx="24" cy="24" r="16" />
+    <circle cx="18" cy="28" r="3" />
+    <path d="M8 40l4-4" />
+  </svg>
+);
+
+const ViolationsIcon = () => (
+  <svg viewBox="0 0 48 48" className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <rect x="8" y="12" width="32" height="28" rx="2" />
+    <path d="M8 20h32" />
+    <circle cx="16" cy="30" r="4" />
+    <circle cx="32" cy="30" r="4" />
+    <path d="M20 30h8" />
+    <path d="M24 6v6" />
+    <path d="M20 8h8" />
+  </svg>
+);
+
+const PaymentBalanceIcon = () => (
+  <svg viewBox="0 0 48 48" className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <rect x="6" y="14" width="36" height="24" rx="3" />
+    <path d="M6 22h36" />
+    <path d="M12 30h8" />
+    <path d="M12 34h4" />
+    <circle cx="34" cy="32" r="4" />
+    <path d="M34 30v4" />
+    <path d="M32 32h4" />
+  </svg>
+);
+
 // Dashboard cards data
 const dashboardCards = [
   { id: 'my_services', name: 'خدماتي', icon: LaptopIcon, route: '/services' },
@@ -118,12 +152,15 @@ const dashboardCards = [
 
 const appointmentCard = { id: 'appointments', name: 'مواعيد', icon: CalendarIcon, route: '/requests' };
 
-// Other services with new items
+// Other services with all items
 const otherServices = [
   { id: 'criminal_record', name: 'إصدار شهادة خلو سوابق', icon: CertificateIcon, route: '/services/civil_affairs' },
   { id: 'absher_reports', name: 'تقارير أبشر', icon: ReportsIcon, route: '/services' },
   { id: 'vehicle_sale', name: 'مبايعة المركبات', icon: VehicleSaleIcon, route: '/services/traffic' },
   { id: 'plate_auction', name: 'مزاد اللوحات الإلكترونية', icon: AuctionIcon, route: '/services/traffic' },
+  { id: 'travel_ban', name: 'إيقاف الخدمات وقيود السفر', icon: TravelBanIcon, route: '/services' },
+  { id: 'violations_inquiry', name: 'الاستعلام الشامل عن المخالفات المرورية', icon: ViolationsIcon, route: '/services/traffic' },
+  { id: 'payment_balance', name: 'رصيد المدفوعات الحكومية', icon: PaymentBalanceIcon, route: '/services' },
 ];
 
 export default function Index() {
@@ -255,7 +292,7 @@ export default function Index() {
             {/* Services Carousel - Single Card View */}
             <div className="flex items-center justify-center gap-4">
               <button 
-                onClick={prevService}
+                onClick={nextService}
                 className="shrink-0 text-primary hover:text-primary/70 transition-colors"
               >
                 <ChevronLeft className="w-10 h-10" strokeWidth={2.5} />
@@ -274,7 +311,7 @@ export default function Index() {
               </Card>
 
               <button 
-                onClick={nextService}
+                onClick={prevService}
                 className="shrink-0 text-primary hover:text-primary/70 transition-colors"
               >
                 <ChevronRight className="w-10 h-10" strokeWidth={2.5} />
