@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   ArrowLeft, 
   Bot, 
@@ -12,9 +13,10 @@ import {
   Zap,
   ArrowDown,
   ArrowUp,
-  Settings,
   Play,
-  Info
+  Info,
+  TrendingUp,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,8 +29,8 @@ interface AgentTool {
   isActive: boolean;
   inputs: { name: string; type: string; required: boolean }[];
   outputs: { name: string; type: string }[];
-  lastUsed?: string;
   usageCount: number;
+  lastUsed?: string;
 }
 
 const AGENT_TOOLS: AgentTool[] = [
@@ -47,7 +49,7 @@ const AGENT_TOOLS: AgentTool[] = [
       { name: 'total_amount', type: 'number' },
       { name: 'unpaid_count', type: 'number' },
     ],
-    usageCount: 156,
+    usageCount: 0,
   },
   {
     id: 'pay_fine',
@@ -64,7 +66,7 @@ const AGENT_TOOLS: AgentTool[] = [
       { name: 'receipt_number', type: 'string' },
       { name: 'status', type: 'string' },
     ],
-    usageCount: 89,
+    usageCount: 0,
   },
   {
     id: 'renew_license',
@@ -81,7 +83,7 @@ const AGENT_TOOLS: AgentTool[] = [
       { name: 'new_expiry_date', type: 'date' },
       { name: 'request_number', type: 'string' },
     ],
-    usageCount: 234,
+    usageCount: 0,
   },
   {
     id: 'book_appointment',
@@ -101,7 +103,7 @@ const AGENT_TOOLS: AgentTool[] = [
       { name: 'time', type: 'string' },
       { name: 'branch_name', type: 'string' },
     ],
-    usageCount: 567,
+    usageCount: 0,
   },
   {
     id: 'renew_passport',
@@ -118,7 +120,7 @@ const AGENT_TOOLS: AgentTool[] = [
       { name: 'request_number', type: 'string' },
       { name: 'expected_delivery', type: 'date' },
     ],
-    usageCount: 123,
+    usageCount: 0,
   },
   {
     id: 'renew_id',
@@ -134,7 +136,7 @@ const AGENT_TOOLS: AgentTool[] = [
       { name: 'request_number', type: 'string' },
       { name: 'pickup_location', type: 'string' },
     ],
-    usageCount: 345,
+    usageCount: 0,
   },
   {
     id: 'family_visit_visa',
@@ -153,7 +155,7 @@ const AGENT_TOOLS: AgentTool[] = [
       { name: 'visa_number', type: 'string' },
       { name: 'expiry_date', type: 'date' },
     ],
-    usageCount: 78,
+    usageCount: 0,
   },
   {
     id: 'exit_reentry_visa',
@@ -171,7 +173,7 @@ const AGENT_TOOLS: AgentTool[] = [
       { name: 'visa_number', type: 'string' },
       { name: 'valid_until', type: 'date' },
     ],
-    usageCount: 45,
+    usageCount: 0,
   },
   {
     id: 'search_knowledge',
@@ -187,7 +189,7 @@ const AGENT_TOOLS: AgentTool[] = [
       { name: 'results', type: 'array' },
       { name: 'answer', type: 'string' },
     ],
-    usageCount: 1234,
+    usageCount: 0,
   },
 ];
 
@@ -211,15 +213,61 @@ export default function Agents() {
   const navigate = useNavigate();
   const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [agents, setAgents] = useState<AgentTool[]>(AGENT_TOOLS);
+  const [loading, setLoading] = useState(true);
+  const [totalUsage, setTotalUsage] = useState(0);
 
-  const filteredAgents = AGENT_TOOLS.filter(agent => {
+  useEffect(() => {
+    loadAgentStats();
+  }, []);
+
+  const loadAgentStats = async () => {
+    setLoading(true);
+    
+    try {
+      // Get usage counts per agent from database
+      const { data: usageData, error } = await supabase
+        .from('agent_usage')
+        .select('agent_id, created_at');
+
+      if (error) {
+        console.error('Error loading agent stats:', error);
+      } else {
+        // Count usage per agent
+        const usageCounts: Record<string, number> = {};
+        const lastUsed: Record<string, string> = {};
+        
+        (usageData || []).forEach(usage => {
+          usageCounts[usage.agent_id] = (usageCounts[usage.agent_id] || 0) + 1;
+          if (!lastUsed[usage.agent_id] || usage.created_at > lastUsed[usage.agent_id]) {
+            lastUsed[usage.agent_id] = usage.created_at;
+          }
+        });
+
+        // Update agents with real stats
+        setAgents(prev => prev.map(agent => ({
+          ...agent,
+          usageCount: usageCounts[agent.id] || 0,
+          lastUsed: lastUsed[agent.id],
+        })));
+
+        setTotalUsage(usageData?.length || 0);
+      }
+    } catch (err) {
+      console.error('Error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredAgents = agents.filter(agent => {
     if (filter === 'active') return agent.isActive;
     if (filter === 'inactive') return !agent.isActive;
     return true;
   });
 
-  const activeCount = AGENT_TOOLS.filter(a => a.isActive).length;
-  const inactiveCount = AGENT_TOOLS.filter(a => !a.isActive).length;
+  const activeCount = agents.filter(a => a.isActive).length;
+  const inactiveCount = agents.filter(a => !a.isActive).length;
 
   return (
     <Layout>
@@ -244,10 +292,10 @@ export default function Agents() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-4 gap-4 mb-6">
           <Card className="text-center">
             <CardContent className="p-4">
-              <p className="text-3xl font-bold text-foreground">{AGENT_TOOLS.length}</p>
+              <p className="text-3xl font-bold text-foreground">{agents.length}</p>
               <p className="text-sm text-muted-foreground">إجمالي الوكلاء</p>
             </CardContent>
           </Card>
@@ -261,6 +309,19 @@ export default function Agents() {
             <CardContent className="p-4">
               <p className="text-3xl font-bold text-muted-foreground">{inactiveCount}</p>
               <p className="text-sm text-muted-foreground">غير نشط</p>
+            </CardContent>
+          </Card>
+          <Card className="text-center bg-primary/5 border-primary/20">
+            <CardContent className="p-4">
+              {loading ? (
+                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-1" />
+              ) : (
+                <p className="text-3xl font-bold text-primary">{totalUsage}</p>
+              )}
+              <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                <TrendingUp className="w-3 h-3" />
+                إجمالي الاستخدام
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -417,7 +478,6 @@ export default function Agents() {
                         className="flex-1 gap-2"
                         onClick={(e) => {
                           e.stopPropagation();
-                          // Test agent
                           const event = new CustomEvent('openChatWithContext', {
                             detail: { message: `اختبر الوكيل: ${agent.nameAr}` }
                           });

@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_usage: {
+        Row: {
+          agent_id: string
+          created_at: string
+          execution_time_ms: number | null
+          id: string
+          inputs: Json | null
+          outputs: Json | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          execution_time_ms?: number | null
+          id?: string
+          inputs?: Json | null
+          outputs?: Json | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          execution_time_ms?: number | null
+          id?: string
+          inputs?: Json | null
+          outputs?: Json | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           created_at: string
