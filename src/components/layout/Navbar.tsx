@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Grid3X3, ClipboardList, User, LogOut, Menu } from 'lucide-react';
+import { Home, Grid3X3, ClipboardList, User, LogOut, Menu, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { DEMO_USERS } from '@/lib/constants';
@@ -15,6 +15,7 @@ const navItems = [
   { path: '/', label: 'الرئيسية', icon: Home },
   { path: '/services', label: 'الخدمات', icon: Grid3X3 },
   { path: '/requests', label: 'طلباتي', icon: ClipboardList },
+  { path: '/agents', label: 'الوكلاء', icon: Bot },
 ];
 
 export function Navbar() {
