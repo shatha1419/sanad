@@ -3,13 +3,12 @@ import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SERVICES, QUICK_SUGGESTIONS } from '@/lib/constants';
-import { MessageSquare, BookOpen, Car, IdCard, Plane, ArrowLeft, Sparkles } from 'lucide-react';
+import { MessageSquare, BookOpen, Car, IdCard, ArrowLeft, Sparkles } from 'lucide-react';
 
 const iconMap: Record<string, React.ReactNode> = {
-  Passport: <BookOpen className="w-6 h-6" />,
+  BookOpen: <BookOpen className="w-6 h-6" />,
   Car: <Car className="w-6 h-6" />,
   IdCard: <IdCard className="w-6 h-6" />,
-  Plane: <Plane className="w-6 h-6" />,
 };
 
 export default function Index() {
