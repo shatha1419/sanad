@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { ImageCropper } from '@/components/ImageCropper';
 import { 
   Upload, 
   Camera, 
@@ -14,7 +15,10 @@ import {
   RotateCcw,
   Loader2,
   Image as ImageIcon,
-  ChevronRight
+  ChevronRight,
+  Crop,
+  AlertTriangle,
+  Shield
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -37,13 +41,13 @@ interface AnalysisResult {
 }
 
 const requirements = [
-  { key: 'whiteBackground', label: 'خلفية بيضاء', description: 'الصورة يجب أن تكون على خلفية بيضاء نقية' },
-  { key: 'straightHead', label: 'الرأس مستقيم', description: 'الرأس في وضع مستقيم غير مائل' },
-  { key: 'centeredFace', label: 'الوجه في المنتصف', description: 'الوجه يجب أن يكون في منتصف الصورة' },
-  { key: 'faceSize', label: 'حجم الوجه مناسب', description: 'حجم الوجه تقريباً 70% من ارتفاع الصورة' },
-  { key: 'goodLighting', label: 'إضاءة جيدة', description: 'إضاءة واضحة بدون ظلال على الوجه' },
-  { key: 'noFilters', label: 'بدون فلاتر', description: 'الصورة طبيعية بدون فلاتر أو تعديلات' },
-  { key: 'notAiGenerated', label: 'صورة حقيقية', description: 'ليست مولدة بالذكاء الاصطناعي' },
+  { key: 'whiteBackground', label: 'خلفية بيضاء', description: 'الصورة يجب أن تكون على خلفية بيضاء نقية', icon: '🟢' },
+  { key: 'straightHead', label: 'الرأس مستقيم', description: 'الرأس في وضع مستقيم غير مائل', icon: '🟢' },
+  { key: 'centeredFace', label: 'الوجه في المنتصف', description: 'الوجه يجب أن يكون في منتصف الصورة', icon: '🟢' },
+  { key: 'faceSize', label: 'حجم الوجه مناسب', description: 'حجم الوجه تقريباً 70% من ارتفاع الصورة', icon: '🟢' },
+  { key: 'goodLighting', label: 'إضاءة جيدة', description: 'إضاءة واضحة بدون ظلال على الوجه', icon: '🟢' },
+  { key: 'noFilters', label: 'بدون فلاتر', description: 'الصورة طبيعية بدون فلاتر أو تعديلات', icon: '🛡️' },
+  { key: 'notAiGenerated', label: 'صورة حقيقية', description: 'ليست مولدة بالذكاء الاصطناعي', icon: '🔍' },
 ];
 
 export default function PhotoAnalyzer() {
@@ -53,10 +57,12 @@ export default function PhotoAnalyzer() {
   const videoRef = useRef<HTMLVideoElement>(null);
   
   const [image, setImage] = useState<string | null>(null);
+  const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [showCropper, setShowCropper] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
   const handleFileSelect = useCallback((file: File) => {
@@ -71,11 +77,24 @@ export default function PhotoAnalyzer() {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      setImage(e.target?.result as string);
+      const result = e.target?.result as string;
+      setOriginalImage(result);
+      setShowCropper(true);
       setAnalysisResult(null);
     };
     reader.readAsDataURL(file);
   }, [toast]);
+
+  const handleCropComplete = useCallback((croppedImage: string) => {
+    setImage(croppedImage);
+    setShowCropper(false);
+  }, []);
+
+  const openCropper = useCallback(() => {
+    if (originalImage) {
+      setShowCropper(true);
+    }
+  }, [originalImage]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -120,7 +139,9 @@ export default function PhotoAnalyzer() {
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(videoRef.current, 0, 0);
-        setImage(canvas.toDataURL('image/jpeg'));
+        const result = canvas.toDataURL('image/jpeg');
+        setOriginalImage(result);
+        setShowCropper(true);
         setAnalysisResult(null);
       }
       closeCamera();
@@ -186,6 +207,7 @@ export default function PhotoAnalyzer() {
 
   const reset = () => {
     setImage(null);
+    setOriginalImage(null);
     setAnalysisResult(null);
     setAnalysisProgress(0);
   };
@@ -225,6 +247,15 @@ export default function PhotoAnalyzer() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Image Cropper Modal */}
+          {showCropper && originalImage && (
+            <ImageCropper
+              imageSrc={originalImage}
+              onCropComplete={handleCropComplete}
+              onCancel={() => setShowCropper(false)}
+            />
+          )}
 
           {/* Camera Modal */}
           {showCamera && (
@@ -300,12 +331,22 @@ export default function PhotoAnalyzer() {
                     alt="الصورة المرفوعة" 
                     className="w-full max-h-80 object-contain bg-muted"
                   />
-                  <button 
-                    onClick={reset}
-                    className="absolute top-2 left-2 bg-destructive text-destructive-foreground p-2 rounded-full"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  <div className="absolute top-2 left-2 flex gap-2">
+                    <button 
+                      onClick={reset}
+                      className="bg-destructive text-destructive-foreground p-2 rounded-full"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                    {originalImage && !analysisResult && (
+                      <button 
+                        onClick={openCropper}
+                        className="bg-primary text-primary-foreground p-2 rounded-full"
+                      >
+                        <Crop className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 
                 {!analysisResult && (
