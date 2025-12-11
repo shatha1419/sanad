@@ -182,63 +182,75 @@ export default function Index() {
     <Layout>
       <div className="min-h-screen bg-background">
         {/* Header - Absher Style */}
-        <header className="bg-card px-4 py-4">
+        <header className="bg-card px-4 py-5">
           <div className="flex items-center justify-between">
             {/* Menu Icon - Left */}
             <button className="p-2">
-              <div className="space-y-1.5">
-                <div className="w-7 h-1 bg-primary rounded-full"></div>
-                <div className="w-7 h-1 bg-primary rounded-full"></div>
-                <div className="w-7 h-1 bg-primary rounded-full"></div>
+              <div className="space-y-2">
+                <div className="w-8 h-1.5 bg-primary rounded-sm"></div>
+                <div className="w-8 h-1.5 bg-primary rounded-sm"></div>
+                <div className="w-8 h-1.5 bg-primary rounded-sm"></div>
               </div>
             </button>
 
             {/* Language Switch - Center */}
-            <button className="flex flex-col items-center border-2 border-border rounded-xl px-6 py-2 bg-card shadow-sm">
-              <div className="flex items-center gap-1">
-                <span className="text-primary text-2xl font-bold">ع</span>
-                <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M7 16l5-5 5 5" />
-                  <path d="M7 8l5 5 5-5" />
+            <button className="flex flex-col items-center border border-muted-foreground/30 rounded-lg px-5 py-3 bg-card">
+              <div className="flex items-center gap-0">
+                <span className="text-primary text-2xl font-medium" style={{ fontFamily: 'serif' }}>ع</span>
+                <svg className="w-6 h-6 text-primary mx-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M17 8c-2-2-5-2-6 1" strokeLinecap="round"/>
+                  <path d="M18 7l-1 1.5 1.5 0.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M7 16c2 2 5 2 6-1" strokeLinecap="round"/>
+                  <path d="M6 17l1-1.5-1.5-0.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <span className="text-primary text-lg font-semibold">E</span>
+                <span className="text-primary text-xl font-medium">E</span>
               </div>
-              <span className="text-xs text-muted-foreground">English</span>
+              <span className="text-sm text-foreground mt-1">English</span>
             </button>
 
-            {/* Vision 2030 & SANAD Logo - Right */}
-            <div className="flex items-center gap-2">
+            {/* Vision 2030 & Absher Logo - Right */}
+            <div className="flex items-center gap-3">
               {/* Vision 2030 */}
               <div className="text-right leading-tight">
-                <p className="text-[9px] text-muted-foreground">رؤيـــة</p>
-                <div className="flex items-center gap-0.5">
-                  <span className="text-primary font-bold text-lg">2</span>
-                  <div className="w-4 h-4">
-                    <svg viewBox="0 0 24 24" className="w-full h-full text-primary">
-                      <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2"/>
-                      <circle cx="12" cy="12" r="4" fill="currentColor"/>
-                    </svg>
-                  </div>
-                  <span className="text-primary font-bold text-lg">3</span>
-                  <span className="text-primary font-bold text-lg">0</span>
+                <div className="flex items-center justify-end gap-1">
+                  <span className="text-[10px] text-muted-foreground">رؤيـــة</span>
+                  <span className="text-[10px] text-muted-foreground">VISION</span>
                 </div>
-                <p className="text-[7px] text-muted-foreground">المملكة العربية السعودية</p>
-                <p className="text-[6px] text-muted-foreground">KINGDOM OF SAUDI ARABIA</p>
+                <div className="flex items-center justify-end gap-0">
+                  <span className="text-primary font-bold text-2xl">2</span>
+                  <svg viewBox="0 0 40 40" className="w-7 h-7">
+                    <circle cx="20" cy="20" r="12" fill="none" stroke="hsl(var(--primary))" strokeWidth="2"/>
+                    <g fill="hsl(var(--primary))">
+                      <circle cx="20" cy="10" r="2"/>
+                      <circle cx="28" cy="14" r="2"/>
+                      <circle cx="30" cy="22" r="2"/>
+                      <circle cx="26" cy="29" r="2"/>
+                      <circle cx="18" cy="30" r="2"/>
+                      <circle cx="11" cy="26" r="2"/>
+                      <circle cx="10" cy="18" r="2"/>
+                      <circle cx="14" cy="12" r="2"/>
+                      <circle cx="20" cy="20" r="3"/>
+                    </g>
+                  </svg>
+                  <span className="text-primary font-bold text-2xl">3</span>
+                  <span className="text-primary font-bold text-2xl">0</span>
+                </div>
+                <p className="text-[8px] text-muted-foreground">المملكة العربية السعودية</p>
+                <p className="text-[7px] text-muted-foreground">KINGDOM OF SAUDI ARABIA</p>
               </div>
               
               {/* Divider */}
-              <div className="w-px h-12 bg-border"></div>
+              <div className="w-px h-14 bg-muted-foreground/30"></div>
               
-              {/* SANAD Logo */}
+              {/* Absher-style Logo */}
               <div className="flex flex-col items-center">
-                <div className="flex gap-[2px]">
-                  <div className="w-1 h-3 bg-primary rounded-sm"></div>
-                  <div className="w-1 h-4 bg-primary rounded-sm"></div>
-                  <div className="w-1 h-5 bg-primary rounded-sm"></div>
-                  <div className="w-1 h-6 bg-primary rounded-sm"></div>
-                  <div className="w-1 h-7 bg-primary rounded-sm"></div>
+                <div className="flex gap-[3px] items-end">
+                  <div className="w-[5px] h-4 bg-primary rounded-sm"></div>
+                  <div className="w-[5px] h-5 bg-primary rounded-sm"></div>
+                  <div className="w-[5px] h-6 bg-primary rounded-sm"></div>
+                  <div className="w-[5px] h-7 bg-primary rounded-sm"></div>
+                  <div className="w-[5px] h-8 bg-primary rounded-sm"></div>
                 </div>
-                <p className="text-xs font-bold text-primary mt-1">سند</p>
               </div>
             </div>
           </div>
