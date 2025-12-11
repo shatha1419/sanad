@@ -261,7 +261,7 @@ export default function Index() {
                 <img 
                   src={sanadLogo} 
                   alt="سند" 
-                  className="h-12 object-contain"
+                  className="h-20 object-contain"
                 />
                 <div className="w-full border-t border-border mt-3"></div>
               </CardContent>
