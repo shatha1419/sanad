@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { MessageCircle, X, Send, Mic, Loader2, Bot, CheckCircle, MicOff } from 'lucide-react';
+import { X, Send, Mic, Loader2, Bot, CheckCircle, MicOff, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useChat, Message } from '@/hooks/useChat';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface ServiceContext {
   service?: string;
@@ -20,9 +21,9 @@ export function FloatingChat() {
   const [serviceContext, setServiceContext] = useState<ServiceContext | null>(null);
   const { messages, isLoading, sendMessage, clearMessages, loadConversation } = useChat();
   
-  const { isRecording, startLiveRecognition, stopRecording } = useVoiceInput({
+  const { isRecording, isSupported, startLiveRecognition, stopRecording } = useVoiceInput({
     onTranscript: (text) => {
-      setInput(prev => prev + ' ' + text);
+      setInput(prev => (prev ? prev + ' ' : '') + text);
     },
   });
 
@@ -80,6 +81,9 @@ export function FloatingChat() {
     if (isRecording) {
       stopRecording();
     } else {
+      if (!isSupported) {
+        toast.warning('سيتم تسجيل الصوت. للأفضل، افتح التطبيق في متصفح عادي.');
+      }
       await startLiveRecognition();
     }
   };
