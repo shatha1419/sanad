@@ -3,13 +3,14 @@ import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SERVICES, ServiceItem } from '@/lib/constants';
-import { ArrowRight, FileText, Clock, CheckCircle, Loader2, Bot, Zap, MessageCircle } from 'lucide-react';
+import { ArrowRight, FileText, Clock, CheckCircle, Loader2, Bot, Zap, MessageCircle, Calendar } from 'lucide-react';
 import { useState } from 'react';
 import { useAgentAction } from '@/hooks/useAgentAction';
 import { toast } from 'sonner';
 import { ServiceExecutionForm } from '@/components/services/ServiceExecutionForm';
 import { supabase } from '@/integrations/supabase/client';
-
+import { addServiceAppointment } from '@/components/AppointmentCalendar';
+import { addDays } from 'date-fns';
 // Service requirements configuration
 const SERVICE_REQUIREMENTS: Record<string, { id: string; name: string; type: 'file' | 'image' | 'text' | 'select'; required: boolean; description?: string; options?: string[] }[]> = {
   renew_license: [
@@ -83,6 +84,10 @@ export default function ServiceDetail() {
     setShowForm(true);
   };
 
+  // Services that require appointments
+  const servicesWithAppointments = ['renew_license', 'issue_license', 'passport_services', 'renew_id'];
+  const needsAppointment = serviceId && servicesWithAppointments.includes(serviceId);
+
   const handleFormSubmit = async (data: Record<string, unknown>) => {
     setIsSubmitting(true);
     
@@ -111,6 +116,25 @@ export default function ServiceDetail() {
         .single();
 
       if (error) throw error;
+
+      // Auto-create appointment for services that need it
+      if (needsAppointment) {
+        try {
+          const appointmentDate = addDays(new Date(), 7); // Schedule for 7 days later
+          await addServiceAppointment(
+            user.id,
+            serviceId || '',
+            `موعد ${service?.name}`,
+            appointmentDate,
+            '10:00',
+            'إدارة المرور - الرياض'
+          );
+          toast.success('تم حجز موعد تلقائياً في التقويم');
+        } catch (appointmentError) {
+          console.error('Error creating appointment:', appointmentError);
+          // Don't fail the whole request if appointment fails
+        }
+      }
 
       // Execute agent tool if available
       if (service?.agentTool) {
@@ -302,6 +326,12 @@ export default function ServiceDetail() {
                 <Clock className="w-5 h-5 text-primary shrink-0" />
                 <span className="text-foreground">مدة التنفيذ: 3-5 أيام عمل</span>
               </div>
+              {needsAppointment && (
+                <div className="flex items-center gap-3 text-right pt-2 border-t border-border">
+                  <Calendar className="w-5 h-5 text-primary shrink-0" />
+                  <span className="text-foreground text-sm">سيتم حجز موعد تلقائياً في التقويم</span>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
