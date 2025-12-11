@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import absherLogo from '@/assets/absher-logo.png';
 import moi2030Logo from '@/assets/moi-2030-logo.png';
+import { Sidebar } from '@/components/Sidebar';
+import { AppointmentCalendar } from '@/components/AppointmentCalendar';
 
 // Custom SVG Icons matching Absher style
 const LaptopIcon = () => (
@@ -163,6 +165,7 @@ const featuredServices = [
 export default function Index() {
   const navigate = useNavigate();
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const nextService = () => {
     setCurrentServiceIndex((prev) => (prev + 1) % featuredServices.length);
@@ -178,11 +181,14 @@ export default function Index() {
   return (
     <Layout>
       <div className="min-h-screen bg-background">
+        {/* Sidebar */}
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        
         {/* Header - Absher Style */}
         <header className="bg-card px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Menu Icon - Left (3 thick green bars) */}
-            <button className="p-1">
+            <button className="p-1" onClick={() => setIsSidebarOpen(true)}>
               <div className="flex flex-col gap-[6px]">
                 <div className="w-9 h-[6px] bg-primary rounded-[2px]"></div>
                 <div className="w-9 h-[6px] bg-primary rounded-[2px]"></div>
@@ -243,21 +249,9 @@ export default function Index() {
             })}
           </div>
 
-          {/* Appointments Card - Right aligned */}
-          <div className="grid grid-cols-2 gap-3 mb-8">
-            <div></div>
-            <Card
-              onClick={() => navigate(appointmentCard.route)}
-              className="cursor-pointer hover:shadow-sanad transition-all duration-200 bg-card border-border"
-            >
-              <CardContent className="p-5 flex flex-col items-center">
-                <div className="text-primary mb-3">
-                  <CalendarIcon />
-                </div>
-                <div className="w-full h-px bg-border mb-3"></div>
-                <h3 className="text-base font-semibold text-foreground">{appointmentCard.name}</h3>
-              </CardContent>
-            </Card>
+          {/* Calendar Section */}
+          <div className="mb-6">
+            <AppointmentCalendar />
           </div>
 
           {/* Other Services Section */}
