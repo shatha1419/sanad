@@ -2,201 +2,156 @@ import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { SERVICES } from '@/lib/constants';
-import { Search, BookOpen, Car, IdCard, Mic } from 'lucide-react';
+import { Search, Car, Users, Briefcase, Calendar, Laptop, ChevronLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { DEMO_USERS } from '@/lib/constants';
 
-const iconMap: Record<string, React.ReactNode> = {
-  BookOpen: <BookOpen className="w-10 h-10" />,
-  Car: <Car className="w-10 h-10" />,
-  IdCard: <IdCard className="w-10 h-10" />,
-};
+// Main dashboard cards matching Absher layout
+const dashboardCards = [
+  { id: 'my_services', name: 'خدماتي', icon: Laptop, route: '/services' },
+  { id: 'vehicles', name: 'المركبات', icon: Car, route: '/services/traffic' },
+  { id: 'family', name: 'أفراد الأسرة', icon: Users, route: '/profile' },
+  { id: 'workers', name: 'العمالة', icon: Briefcase, route: '/profile' },
+  { id: 'appointments', name: 'مواعيد', icon: Calendar, route: '/requests' },
+];
 
-const categoryColors: Record<string, string> = {
-  passports: 'text-primary',
-  traffic: 'text-primary',
-  civil_affairs: 'text-primary',
-};
+// Other services carousel items
+const otherServices = [
+  { id: 'passports', name: 'الجوازات', isNew: true },
+  { id: 'civil', name: 'الأحوال المدنية', isNew: false },
+  { id: 'traffic', name: 'المرور', isNew: false },
+];
 
 export default function Index() {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  // Get user profile data
   const nationalId = user?.email?.replace('@sanad.gov.sa', '') || '';
   const userData = DEMO_USERS[nationalId];
 
-  const handleCategoryClick = (categoryId: string) => {
-    navigate(`/services/${categoryId}`);
-  };
-
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6">
-        {/* Welcome Header */}
-        <section className="mb-8 animate-fade-in">
-          <div className="flex items-center justify-between mb-6">
-            <div className="text-right">
-              <p className="text-muted-foreground text-sm">أهلاً وسهلاً،</p>
-              <h2 className="text-lg font-bold text-foreground">
-                {userData?.fullName || 'مستخدم سَنَد'}
-              </h2>
+      <div className="min-h-screen bg-background">
+        {/* Header with Logos */}
+        <header className="bg-card border-b border-border px-4 py-3">
+          <div className="flex items-center justify-between">
+            {/* Menu Icon (left in RTL) */}
+            <button className="p-2">
+              <div className="space-y-1.5">
+                <div className="w-6 h-0.5 bg-primary"></div>
+                <div className="w-6 h-0.5 bg-primary"></div>
+                <div className="w-6 h-0.5 bg-primary"></div>
+              </div>
+            </button>
+
+            {/* Center - Language Switch */}
+            <button className="flex flex-col items-center border border-border rounded-xl px-6 py-2">
+              <span className="text-primary text-2xl font-bold">عـ</span>
+              <span className="text-xs text-muted-foreground">English</span>
+            </button>
+
+            {/* Right - Vision 2030 & Kingdom Logo */}
+            <div className="flex items-center gap-2">
+              <div className="text-right">
+                <p className="text-[8px] text-muted-foreground leading-tight">رؤيـــة</p>
+                <p className="text-primary font-bold text-lg">2030</p>
+                <p className="text-[6px] text-muted-foreground">VISION</p>
+              </div>
+              <div className="w-px h-8 bg-border mx-1"></div>
+              <div className="flex flex-col items-center">
+                <div className="flex gap-0.5">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="w-1 h-6 bg-primary rounded-full"></div>
+                  ))}
+                </div>
+                <p className="text-[6px] text-muted-foreground mt-1">المملكة العربية السعودية</p>
+              </div>
             </div>
           </div>
+        </header>
 
-          {/* Hero Title */}
-          <div className="text-right mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-primary mb-3">
-              المساعد سَنَد
-            </h1>
-            <p className="text-muted-foreground leading-relaxed">
-              مساعدك الذكي للخدمات الحكومية، أرشد وأنفذ عنك الإجراءات الروتينية في خطوة واحدة فقط
-            </p>
-          </div>
-
+        {/* Main Content */}
+        <div className="px-4 py-4">
           {/* Search Bar */}
-          <div className="relative">
-            <div className="flex items-center bg-card rounded-full border border-border shadow-sm overflow-hidden">
-              <button className="p-4 text-primary hover:bg-muted transition-colors">
-                <Mic className="w-5 h-5" />
-              </button>
+          <div className="relative mb-6">
+            <div className="flex items-center bg-card rounded-lg border border-border overflow-hidden">
               <Input
-                placeholder="اكتب المهمة أو الاستفسار اللي تبغاني أساعدك فيه"
-                className="flex-1 border-0 bg-transparent focus-visible:ring-0 text-right pr-4"
+                placeholder="اكتب هنا للبحث"
+                className="flex-1 border-0 bg-transparent focus-visible:ring-0 text-right pr-4 h-12"
               />
-              <button className="p-4 text-muted-foreground hover:bg-muted transition-colors">
+              <button className="p-3 text-muted-foreground">
                 <Search className="w-5 h-5" />
               </button>
             </div>
           </div>
-        </section>
 
-        {/* Services Section */}
-        <section className="animate-slide-up" style={{ animationDelay: '100ms' }}>
-          <h2 className="text-xl font-bold text-foreground text-center mb-6">الخدمات</h2>
-          
-          {/* Service Categories - 3 Cards */}
-          <div className="grid grid-cols-3 gap-3 mb-8">
-            {Object.values(SERVICES).map((category) => (
-              <Card
-                key={category.id}
-                onClick={() => handleCategoryClick(category.id)}
-                className="cursor-pointer hover:shadow-sanad transition-all duration-300 hover:-translate-y-1 group bg-card border-border"
-              >
-                <CardContent className="p-4 text-center">
-                  <div className={`mx-auto mb-2 ${categoryColors[category.id]}`}>
-                    {iconMap[category.icon]}
-                  </div>
-                  <h3 className="text-sm font-semibold text-foreground">{category.name}</h3>
-                </CardContent>
-              </Card>
-            ))}
+          {/* Main Dashboard Cards - 2x3 Grid */}
+          <div className="grid grid-cols-2 gap-3 mb-8">
+            {dashboardCards.map((card, index) => {
+              const IconComponent = card.icon;
+              // Special positioning for "مواعيد" to be on the right column, 3rd row
+              const isAppointments = card.id === 'appointments';
+              
+              return (
+                <Card
+                  key={card.id}
+                  onClick={() => navigate(card.route)}
+                  className={`cursor-pointer hover:shadow-sanad transition-all duration-200 bg-card border-border ${
+                    isAppointments ? 'col-start-2' : ''
+                  }`}
+                >
+                  <CardContent className="p-6 flex flex-col items-center">
+                    <div className="mb-3 text-primary">
+                      <IconComponent className="w-12 h-12 stroke-[1.5]" />
+                    </div>
+                    <div className="w-full h-px bg-border mb-3"></div>
+                    <h3 className="text-base font-semibold text-foreground">{card.name}</h3>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
-        </section>
 
-        {/* Popular Services Section */}
-        <section className="animate-slide-up" style={{ animationDelay: '200ms' }}>
-          <h2 className="text-xl font-bold text-foreground text-center mb-6">الخدمات الأكثر شيوعًا</h2>
-          
-          <div className="space-y-4">
-            {/* Popular Service 1 - Renew ID */}
-            <Card className="bg-card border-border">
-              <CardContent className="p-5">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-                    <IdCard className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1 text-right">
-                    <span className="text-xs text-muted-foreground">الأحوال المدنية</span>
-                    <h3 className="font-bold text-foreground mb-1">تجديد الهوية الوطنية</h3>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      عبر هذه الخدمة يتم تجديد الهوية الوطنية تلقائياً عبر المساعد سند بعد رفع كافة الوثائق المطلوبة للتجديد
-                    </p>
-                    <div className="flex items-center gap-4">
-                      <button 
-                        onClick={() => navigate('/services/civil_affairs/national_id_services')}
-                        className="px-4 py-2 gradient-primary text-primary-foreground rounded-full text-sm font-medium"
-                      >
-                        اطلب الخدمة
-                      </button>
-                      <button 
-                        onClick={() => navigate('/services/civil_affairs/national_id_services')}
-                        className="text-sm text-primary underline"
-                      >
-                        الاطلاع على الوثائق المطلوبة
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Other Services Section */}
+          <div className="mb-8">
+            <div className="flex items-center justify-center mb-4">
+              <div className="flex-1 h-px bg-border"></div>
+              <h2 className="px-4 text-lg font-semibold text-foreground">خدمات أخرى</h2>
+              <div className="flex-1 h-px bg-border"></div>
+            </div>
 
-            {/* Popular Service 2 - Passport */}
-            <Card className="bg-card border-border">
-              <CardContent className="p-5">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-                    <BookOpen className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1 text-right">
-                    <span className="text-xs text-muted-foreground">الجوازات</span>
-                    <h3 className="font-bold text-foreground mb-1">إصدار جواز سفر لأول مرة</h3>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      عبر هذه الخدمة يتم إصدار جواز سفر لمن لم يسبق لهم استخراجه فوق ٢١ عاماً تلقائياً عبر المساعد سند بعد رفع كافة الوثائق المطلوبة
-                    </p>
-                    <div className="flex items-center gap-4">
-                      <button 
-                        onClick={() => navigate('/services/passports/passport_services')}
-                        className="px-4 py-2 gradient-primary text-primary-foreground rounded-full text-sm font-medium"
-                      >
-                        اطلب الخدمة
-                      </button>
-                      <button 
-                        onClick={() => navigate('/services/passports/passport_services')}
-                        className="text-sm text-primary underline"
-                      >
-                        الاطلاع على الوثائق المطلوبة
-                      </button>
+            {/* Services Carousel */}
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              <button className="shrink-0 w-10 h-10 rounded-full border border-primary text-primary flex items-center justify-center">
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              
+              {otherServices.map((service) => (
+                <Card 
+                  key={service.id}
+                  onClick={() => navigate(`/services/${service.id === 'civil' ? 'civil_affairs' : service.id}`)}
+                  className="shrink-0 w-40 cursor-pointer hover:shadow-sanad transition-all relative bg-card border-border"
+                >
+                  {service.isNew && (
+                    <div className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs px-2 py-0.5 rounded-sm transform rotate-[-15deg]">
+                      جديد
                     </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                  )}
+                  <CardContent className="p-4 text-center">
+                    <div className="w-10 h-10 mx-auto mb-2 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <div className="w-4 h-4 rounded bg-primary/30"></div>
+                    </div>
+                    <p className="text-sm font-medium text-foreground">{service.name}</p>
+                  </CardContent>
+                </Card>
+              ))}
 
-            {/* Popular Service 3 - Renew License */}
-            <Card className="bg-card border-border">
-              <CardContent className="p-5">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-                    <Car className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1 text-right">
-                    <span className="text-xs text-muted-foreground">المرور</span>
-                    <h3 className="font-bold text-foreground mb-1">تجديد رخصة القيادة</h3>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      عبر هذه الخدمة يتم تجديد رخصة القيادة المنتهية أو قريبة الانتهاء تلقائياً عبر المساعد سند
-                    </p>
-                    <div className="flex items-center gap-4">
-                      <button 
-                        onClick={() => navigate('/services/traffic/renew_license')}
-                        className="px-4 py-2 gradient-primary text-primary-foreground rounded-full text-sm font-medium"
-                      >
-                        اطلب الخدمة
-                      </button>
-                      <button 
-                        onClick={() => navigate('/services/traffic/renew_license')}
-                        className="text-sm text-primary underline"
-                      >
-                        الاطلاع على الوثائق المطلوبة
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              <button className="shrink-0 w-10 h-10 rounded-full border border-primary text-primary flex items-center justify-center rotate-180">
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-        </section>
+        </div>
       </div>
     </Layout>
   );
