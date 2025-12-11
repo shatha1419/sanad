@@ -257,12 +257,13 @@ export default function Index() {
               onClick={() => navigate('/chat')}
               className="cursor-pointer hover:shadow-sanad transition-all duration-200 bg-white border border-border overflow-hidden"
             >
-              <CardContent className="p-0 flex items-center justify-center h-full">
+              <CardContent className="p-4 flex flex-col items-center justify-center h-full">
                 <img 
                   src={sanadLogo} 
                   alt="سند" 
-                  className="w-full h-full object-cover"
+                  className="h-12 object-contain"
                 />
+                <div className="w-full border-t border-border mt-3"></div>
               </CardContent>
             </Card>
           </div>
