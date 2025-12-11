@@ -7,6 +7,7 @@ import { useChat, Message } from '@/hooks/useChat';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import sanadLogo from '@/assets/sanad-logo.svg';
 
 interface ServiceContext {
   service?: string;
@@ -136,7 +137,7 @@ export function FloatingChat() {
           <X className="w-6 h-6" />
         ) : (
           <>
-            <Bot className="w-6 h-6" />
+            <img src={sanadLogo} alt="سند" className="w-10 h-10 object-contain" />
             <span className="absolute inset-0 rounded-full gradient-primary animate-pulse-ring" />
           </>
         )}
