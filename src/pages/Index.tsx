@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -61,6 +62,52 @@ const CalendarIcon = () => (
   </svg>
 );
 
+// Icons for other services
+const CertificateIcon = () => (
+  <svg viewBox="0 0 48 48" className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <rect x="8" y="6" width="32" height="36" rx="2" />
+    <path d="M14 14h20" />
+    <path d="M14 20h20" />
+    <path d="M14 26h12" />
+    <circle cx="32" cy="32" r="6" />
+    <path d="M32 29v3l2 2" />
+  </svg>
+);
+
+const ReportsIcon = () => (
+  <svg viewBox="0 0 48 48" className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <rect x="6" y="8" width="36" height="32" rx="2" />
+    <path d="M14 16h20" />
+    <path d="M14 22h16" />
+    <path d="M14 28h12" />
+    <path d="M14 34h8" />
+    <rect x="30" y="26" width="8" height="10" rx="1" />
+  </svg>
+);
+
+const VehicleSaleIcon = () => (
+  <svg viewBox="0 0 48 48" className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <path d="M8 28v6a2 2 0 002 2h4v-4h20v4h4a2 2 0 002-2v-6" />
+    <path d="M10 28l4-10h20l4 10" />
+    <circle cx="14" cy="30" r="2" />
+    <circle cx="34" cy="30" r="2" />
+    <path d="M22 12h4l2 6h-8l2-6z" />
+    <path d="M20 8h8" />
+  </svg>
+);
+
+const AuctionIcon = () => (
+  <svg viewBox="0 0 48 48" className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <rect x="10" y="28" width="28" height="12" rx="2" />
+    <path d="M16 32h4" />
+    <path d="M16 36h8" />
+    <path d="M28 32h6" />
+    <path d="M28 36h4" />
+    <path d="M18 20l6-12 6 12" />
+    <circle cx="24" cy="22" r="3" />
+  </svg>
+);
+
 // Dashboard cards data
 const dashboardCards = [
   { id: 'my_services', name: 'خدماتي', icon: LaptopIcon, route: '/services' },
@@ -71,15 +118,28 @@ const dashboardCards = [
 
 const appointmentCard = { id: 'appointments', name: 'مواعيد', icon: CalendarIcon, route: '/requests' };
 
-// Other services
+// Other services with new items
 const otherServices = [
-  { id: 'passports', name: 'الجوازات', isNew: true },
-  { id: 'civil', name: 'الأحوال المدنية', isNew: false },
-  { id: 'traffic', name: 'المرور', isNew: false },
+  { id: 'criminal_record', name: 'إصدار شهادة خلو سوابق', icon: CertificateIcon, route: '/services/civil_affairs' },
+  { id: 'absher_reports', name: 'تقارير أبشر', icon: ReportsIcon, route: '/services' },
+  { id: 'vehicle_sale', name: 'مبايعة المركبات', icon: VehicleSaleIcon, route: '/services/traffic' },
+  { id: 'plate_auction', name: 'مزاد اللوحات الإلكترونية', icon: AuctionIcon, route: '/services/traffic' },
 ];
 
 export default function Index() {
   const navigate = useNavigate();
+  const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
+
+  const nextService = () => {
+    setCurrentServiceIndex((prev) => (prev + 1) % otherServices.length);
+  };
+
+  const prevService = () => {
+    setCurrentServiceIndex((prev) => (prev - 1 + otherServices.length) % otherServices.length);
+  };
+
+  const currentService = otherServices[currentServiceIndex];
+  const CurrentIcon = currentService.icon;
 
   return (
     <Layout>
@@ -185,50 +245,55 @@ export default function Index() {
           </div>
 
           {/* Other Services Section */}
-          <div className="mb-6">
-            <div className="flex items-center justify-center mb-5">
+          <div className="mb-6 bg-muted py-8 -mx-4 px-4">
+            <div className="flex items-center justify-center mb-6">
               <div className="flex-1 h-px bg-border"></div>
               <h2 className="px-4 text-lg font-semibold text-foreground">خدمات أخرى</h2>
               <div className="flex-1 h-px bg-border"></div>
             </div>
 
-            {/* Services Carousel */}
-            <div className="flex items-center gap-3">
-              <button className="shrink-0 w-10 h-10 rounded-full border-2 border-primary text-primary flex items-center justify-center hover:bg-primary/5 transition-colors">
-                <ChevronLeft className="w-5 h-5" />
+            {/* Services Carousel - Single Card View */}
+            <div className="flex items-center justify-center gap-4">
+              <button 
+                onClick={prevService}
+                className="shrink-0 text-primary hover:text-primary/70 transition-colors"
+              >
+                <ChevronLeft className="w-10 h-10" strokeWidth={2.5} />
               </button>
               
-              <div className="flex-1 overflow-x-auto">
-                <div className="flex gap-3">
-                  {otherServices.map((service) => (
-                    <Card 
-                      key={service.id}
-                      onClick={() => navigate(`/services/${service.id === 'civil' ? 'civil_affairs' : service.id}`)}
-                      className="shrink-0 w-36 cursor-pointer hover:shadow-sanad transition-all relative bg-card border-border"
-                    >
-                      {service.isNew && (
-                        <div className="absolute -top-2 -left-2 z-10">
-                          <div className="bg-destructive text-destructive-foreground text-[10px] px-2 py-0.5 font-bold transform -rotate-12 shadow-sm">
-                            جديد
-                          </div>
-                        </div>
-                      )}
-                      <CardContent className="p-4 text-center">
-                        <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-primary/10 flex items-center justify-center">
-                          <div className="w-6 h-6 rounded-lg bg-primary/20 flex items-center justify-center">
-                            <div className="w-3 h-3 rounded bg-primary/40"></div>
-                          </div>
-                        </div>
-                        <p className="text-sm font-medium text-foreground">{service.name}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
+              <Card 
+                onClick={() => navigate(currentService.route)}
+                className="w-48 cursor-pointer hover:shadow-sanad transition-all bg-card border-border"
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="text-primary mb-4 flex justify-center">
+                    <CurrentIcon />
+                  </div>
+                  <p className="text-sm font-medium text-foreground leading-relaxed">{currentService.name}</p>
+                </CardContent>
+              </Card>
 
-              <button className="shrink-0 w-10 h-10 rounded-full border-2 border-primary text-primary flex items-center justify-center hover:bg-primary/5 transition-colors">
-                <ChevronRight className="w-5 h-5" />
+              <button 
+                onClick={nextService}
+                className="shrink-0 text-primary hover:text-primary/70 transition-colors"
+              >
+                <ChevronRight className="w-10 h-10" strokeWidth={2.5} />
               </button>
+            </div>
+
+            {/* Pagination Dots */}
+            <div className="flex items-center justify-center gap-2 mt-5">
+              {otherServices.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentServiceIndex(index)}
+                  className={`w-3 h-3 rounded-full border-2 transition-all ${
+                    index === currentServiceIndex 
+                      ? 'bg-primary border-primary' 
+                      : 'bg-transparent border-primary/50'
+                  }`}
+                />
+              ))}
             </div>
           </div>
         </div>
