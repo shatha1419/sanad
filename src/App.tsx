@@ -9,6 +9,8 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Chat from "./pages/Chat";
 import Services from "./pages/Services";
+import ServiceCategory from "./pages/ServiceCategory";
+import ServiceDetail from "./pages/ServiceDetail";
 import Requests from "./pages/Requests";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -58,6 +60,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Services />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/services/:categoryId"
+        element={
+          <ProtectedRoute>
+            <ServiceCategory />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/services/:categoryId/:serviceId"
+        element={
+          <ProtectedRoute>
+            <ServiceDetail />
           </ProtectedRoute>
         }
       />
