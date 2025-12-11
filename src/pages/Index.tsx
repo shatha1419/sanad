@@ -263,20 +263,18 @@ export default function Index() {
             <AppointmentCalendar />
             
             {/* SANAD Card - Part of grid */}
-            <div
+            <Card
               onClick={() => navigate('/chat')}
-              className="cursor-pointer hover:shadow-sanad transition-all duration-200 overflow-hidden rounded-lg bg-cover bg-center border border-border"
-              style={{
-                backgroundImage: `url(${sanadLogo})`
-              }}
+              className="cursor-pointer hover:shadow-sanad transition-all duration-200 bg-card border-border"
             >
-              <div className="p-5 flex flex-col items-center h-full">
-                <div className="flex-1 flex items-center justify-center mb-3">
-                  {/* Empty space for logo which is in background */}
+              <CardContent className="p-5 flex flex-col items-center">
+                <div className="mb-3 w-12 h-12 rounded-lg overflow-hidden">
+                  <img src={sanadLogo} alt="سند" className="w-full h-full object-cover" />
                 </div>
-                <div className="w-full h-px bg-border"></div>
-              </div>
-            </div>
+                <div className="w-full h-px bg-border mb-3"></div>
+                <h3 className="text-base font-semibold text-foreground">سند</h3>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Other Services Section */}
