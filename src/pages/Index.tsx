@@ -265,7 +265,7 @@ export default function Index() {
             {/* SANAD Card - Part of grid */}
             <div
               onClick={() => navigate('/chat')}
-              className="cursor-pointer hover:shadow-sanad transition-all duration-200 overflow-hidden rounded-lg bg-cover bg-center"
+              className="cursor-pointer hover:shadow-sanad transition-all duration-200 overflow-hidden rounded-lg bg-cover bg-center border border-border"
               style={{
                 backgroundImage: `url(${sanadLogo})`
               }}
