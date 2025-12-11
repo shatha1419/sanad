@@ -38,6 +38,72 @@ export type Database = {
         }
         Relationships: []
       }
+      driving_licenses: {
+        Row: {
+          created_at: string
+          expiry_date: string
+          id: string
+          issue_date: string
+          license_number: string
+          license_type: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expiry_date: string
+          id?: string
+          issue_date: string
+          license_number: string
+          license_type: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expiry_date?: string
+          id?: string
+          issue_date?: string
+          license_number?: string
+          license_type?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      family_members: {
+        Row: {
+          birth_date: string | null
+          created_at: string
+          id: string
+          is_inside_kingdom: boolean | null
+          name: string
+          national_id: string | null
+          relationship: string
+          user_id: string
+        }
+        Insert: {
+          birth_date?: string | null
+          created_at?: string
+          id?: string
+          is_inside_kingdom?: boolean | null
+          name: string
+          national_id?: string | null
+          relationship: string
+          user_id: string
+        }
+        Update: {
+          birth_date?: string | null
+          created_at?: string
+          id?: string
+          is_inside_kingdom?: boolean | null
+          name?: string
+          national_id?: string | null
+          relationship?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       knowledge_base: {
         Row: {
           category: string
@@ -108,29 +174,59 @@ export type Database = {
       }
       profiles: {
         Row: {
+          birth_date_gregorian: string | null
+          birth_date_hijri: string | null
+          city: string | null
           created_at: string
           full_name: string | null
           id: string
+          last_travel_date: string | null
+          last_travel_destination: string | null
+          marital_status: string | null
           national_id: string | null
+          national_id_expiry: string | null
+          nationality: string | null
+          occupation: string | null
           phone: string | null
+          travel_status: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          birth_date_gregorian?: string | null
+          birth_date_hijri?: string | null
+          city?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
+          last_travel_date?: string | null
+          last_travel_destination?: string | null
+          marital_status?: string | null
           national_id?: string | null
+          national_id_expiry?: string | null
+          nationality?: string | null
+          occupation?: string | null
           phone?: string | null
+          travel_status?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          birth_date_gregorian?: string | null
+          birth_date_hijri?: string | null
+          city?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
+          last_travel_date?: string | null
+          last_travel_destination?: string | null
+          marital_status?: string | null
           national_id?: string | null
+          national_id_expiry?: string | null
+          nationality?: string | null
+          occupation?: string | null
           phone?: string | null
+          travel_status?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -182,6 +278,195 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      traffic_violations: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          is_paid: boolean | null
+          location: string | null
+          paid_at: string | null
+          user_id: string
+          violation_date: string
+          violation_number: string
+          violation_type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          is_paid?: boolean | null
+          location?: string | null
+          paid_at?: string | null
+          user_id: string
+          violation_date: string
+          violation_number: string
+          violation_type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          is_paid?: boolean | null
+          location?: string | null
+          paid_at?: string | null
+          user_id?: string
+          violation_date?: string
+          violation_number?: string
+          violation_type?: string
+        }
+        Relationships: []
+      }
+      travel_history: {
+        Row: {
+          created_at: string
+          departure_date: string
+          destination: string
+          id: string
+          port_name: string | null
+          return_date: string | null
+          travel_type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          departure_date: string
+          destination: string
+          id?: string
+          port_name?: string | null
+          return_date?: string | null
+          travel_type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          departure_date?: string
+          destination?: string
+          id?: string
+          port_name?: string | null
+          return_date?: string | null
+          travel_type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vehicles: {
+        Row: {
+          brand: string | null
+          color: string | null
+          created_at: string
+          id: string
+          model: string | null
+          plate_number: string
+          registration_expiry: string
+          status: string | null
+          user_id: string
+          vehicle_type: string
+          year: number | null
+        }
+        Insert: {
+          brand?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          model?: string | null
+          plate_number: string
+          registration_expiry: string
+          status?: string | null
+          user_id: string
+          vehicle_type: string
+          year?: number | null
+        }
+        Update: {
+          brand?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          model?: string | null
+          plate_number?: string
+          registration_expiry?: string
+          status?: string | null
+          user_id?: string
+          vehicle_type?: string
+          year?: number | null
+        }
+        Relationships: []
+      }
+      visas: {
+        Row: {
+          beneficiary_name: string
+          created_at: string
+          expiry_date: string | null
+          id: string
+          issue_date: string
+          nationality: string | null
+          status: string | null
+          user_id: string
+          visa_number: string
+          visa_type: string
+        }
+        Insert: {
+          beneficiary_name: string
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          issue_date: string
+          nationality?: string | null
+          status?: string | null
+          user_id: string
+          visa_number: string
+          visa_type: string
+        }
+        Update: {
+          beneficiary_name?: string
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          issue_date?: string
+          nationality?: string | null
+          status?: string | null
+          user_id?: string
+          visa_number?: string
+          visa_type?: string
+        }
+        Relationships: []
+      }
+      workers: {
+        Row: {
+          created_at: string
+          id: string
+          is_inside_kingdom: boolean | null
+          name: string
+          nationality: string | null
+          occupation: string | null
+          user_id: string
+          visa_expiry: string | null
+          visa_number: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_inside_kingdom?: boolean | null
+          name: string
+          nationality?: string | null
+          occupation?: string | null
+          user_id: string
+          visa_expiry?: string | null
+          visa_number?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_inside_kingdom?: boolean | null
+          name?: string
+          nationality?: string | null
+          occupation?: string | null
+          user_id?: string
+          visa_expiry?: string | null
+          visa_number?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {

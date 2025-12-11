@@ -66,6 +66,13 @@ export function Navbar() {
                 {user?.email}
               </div>
               <DropdownMenuSeparator />
+              <Link to="/profile">
+                <DropdownMenuItem className="cursor-pointer">
+                  <User className="w-4 h-4 ml-2" />
+                  الملف الشخصي
+                </DropdownMenuItem>
+              </Link>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={signOut} className="text-destructive cursor-pointer">
                 <LogOut className="w-4 h-4 ml-2" />
                 تسجيل الخروج
