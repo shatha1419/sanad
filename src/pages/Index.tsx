@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import absherLogo from '@/assets/absher-logo.png';
 import moi2030Logo from '@/assets/moi-2030-logo.png';
+import sanadLogo from '@/assets/sanad-logo.jpeg';
 import { Sidebar } from '@/components/Sidebar';
 import { AppointmentCalendar } from '@/components/AppointmentCalendar';
 
@@ -250,6 +251,20 @@ export default function Index() {
             
             {/* Calendar Card - Part of grid */}
             <AppointmentCalendar />
+            
+            {/* SANAD Card - Part of grid */}
+            <Card
+              onClick={() => navigate('/chat')}
+              className="cursor-pointer hover:shadow-sanad transition-all duration-200 bg-[#1a4d3e] border-[#1a4d3e]"
+            >
+              <CardContent className="p-5 flex flex-col items-center justify-center h-full">
+                <img 
+                  src={sanadLogo} 
+                  alt="سند" 
+                  className="h-16 object-contain"
+                />
+              </CardContent>
+            </Card>
           </div>
 
           {/* Other Services Section */}
