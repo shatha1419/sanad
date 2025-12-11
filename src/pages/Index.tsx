@@ -147,6 +147,15 @@ const PaymentBalanceIcon = () => (
   </svg>
 );
 
+const PhotoIcon = () => (
+  <svg viewBox="0 0 48 48" className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <rect x="6" y="10" width="36" height="28" rx="3" />
+    <circle cx="24" cy="24" r="8" />
+    <circle cx="24" cy="24" r="4" />
+    <rect x="32" y="14" width="6" height="4" rx="1" />
+  </svg>
+);
+
 // Dashboard cards data
 const dashboardCards = [
   { id: 'my_services', name: 'خدماتي', icon: LaptopIcon, route: '/services' },
@@ -159,8 +168,9 @@ const appointmentCard = { id: 'appointments', name: 'مواعيد', icon: Calend
 
 // Featured services - أبرز الخدمات
 const featuredServices = [
-  { id: 'issue_license', name: 'إصدار رخصة', icon: CertificateIcon, route: '/services/traffic' },
-  { id: 'renew_id', name: 'تجديد هوية', icon: ReportsIcon, route: '/services/civil_affairs' },
+  { id: 'issue_license', name: 'إصدار رخصة', icon: CertificateIcon, route: '/services/traffic/issue_license' },
+  { id: 'renew_id', name: 'تجديد هوية', icon: ReportsIcon, route: '/services/civil_affairs/renew_id' },
+  { id: 'photo_analyzer', name: 'محلل صور أبشر', icon: PhotoIcon, route: '/photo-analyzer' },
 ];
 
 export default function Index() {
