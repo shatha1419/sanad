@@ -100,6 +100,11 @@ export function ServiceExecutionDialog({
     location: string;
   }>>([]);
 
+  // Early return if no service
+  if (!service) {
+    return null;
+  }
+
   // Get user violations from database
   useEffect(() => {
     const fetchViolations = async () => {

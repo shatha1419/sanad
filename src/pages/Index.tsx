@@ -160,7 +160,7 @@ const PhotoIcon = () => (
 const dashboardCards = [
   { id: 'my_services', name: 'خدماتي', icon: LaptopIcon, route: '/services' },
   { id: 'traffic', name: 'المرور', icon: CarIcon, route: '/services/traffic' },
-  { id: 'family', name: 'أفراد الأسرة', icon: FamilyIcon, route: '/profile' },
+  { id: 'civil_affairs', name: 'الأحوال المدنية', icon: FamilyIcon, route: '/services/civil_affairs' },
   { id: 'passports', name: 'الجوازات', icon: WorkersIcon, route: '/services/passports' },
 ];
 
