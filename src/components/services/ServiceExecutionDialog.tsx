@@ -33,6 +33,11 @@ import {
   CreditCard,
   Users,
   Info,
+  ArrowRight,
+  ArrowLeft,
+  Wallet,
+  Smartphone,
+  Building2,
 } from 'lucide-react';
 
 interface ServiceExecutionDialogProps {
@@ -48,6 +53,15 @@ interface ExecutionResult {
   data?: Record<string, unknown>;
 }
 
+type Step = 'info' | 'payment' | 'executing' | 'result';
+
+const paymentMethods = [
+  { id: 'visa', name: 'Visa / Mastercard', icon: CreditCard },
+  { id: 'apple_pay', name: 'Apple Pay', icon: Smartphone },
+  { id: 'mada', name: 'مدى', icon: Wallet },
+  { id: 'sadad', name: 'سداد', icon: Building2 },
+];
+
 export function ServiceExecutionDialog({
   service,
   category,
@@ -55,11 +69,37 @@ export function ServiceExecutionDialog({
   onOpenChange,
 }: ServiceExecutionDialogProps) {
   const { user } = useAuth();
+  const [currentStep, setCurrentStep] = useState<Step>('info');
   const [isExecuting, setIsExecuting] = useState(false);
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const [selectedPayment, setSelectedPayment] = useState<string>('');
 
   if (!service) return null;
+
+  const hasFees = service.fees && service.fees !== 'مجاني' && service.fees !== 'بدون رسوم';
+
+  const handleNext = () => {
+    if (currentStep === 'info') {
+      if (hasFees) {
+        setCurrentStep('payment');
+      } else {
+        handleExecute();
+      }
+    } else if (currentStep === 'payment') {
+      if (!selectedPayment) {
+        toast.error('يرجى اختيار طريقة الدفع');
+        return;
+      }
+      handleExecute();
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep === 'payment') {
+      setCurrentStep('info');
+    }
+  };
 
   const handleExecute = async () => {
     if (!user) {
@@ -67,16 +107,20 @@ export function ServiceExecutionDialog({
       return;
     }
 
+    setCurrentStep('executing');
     setIsExecuting(true);
     setResult(null);
 
     try {
+      // Simulate processing time for better UX
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
       // Execute service via edge function
       const { data, error } = await supabase.functions.invoke('sanad-chat', {
         body: {
           action: 'execute_tool',
           tool: service.agentTool,
-          args: formData,
+          args: { ...formData, payment_method: selectedPayment },
           userId: user.id,
         },
       });
@@ -89,7 +133,11 @@ export function ServiceExecutionDialog({
         service_type: service.name,
         service_category: category,
         status: data.status === 'success' ? 'completed' : 'pending',
-        request_data: { ...formData, execution_type: 'direct' },
+        request_data: { 
+          ...formData, 
+          execution_type: 'direct',
+          payment_method: selectedPayment || null,
+        },
         result_data: data.data || null,
       });
 
@@ -98,6 +146,7 @@ export function ServiceExecutionDialog({
       }
 
       setResult(data);
+      setCurrentStep('result');
       
       if (data.status === 'success') {
         toast.success('تم تنفيذ الخدمة بنجاح');
@@ -108,6 +157,7 @@ export function ServiceExecutionDialog({
         status: 'error',
         message: 'حدث خطأ أثناء تنفيذ الخدمة',
       });
+      setCurrentStep('result');
       toast.error('حدث خطأ أثناء تنفيذ الخدمة');
     } finally {
       setIsExecuting(false);
@@ -117,6 +167,8 @@ export function ServiceExecutionDialog({
   const handleClose = () => {
     setResult(null);
     setFormData({});
+    setSelectedPayment('');
+    setCurrentStep('info');
     onOpenChange(false);
   };
 
@@ -155,6 +207,40 @@ export function ServiceExecutionDialog({
 
   const formFields = getFormFields();
 
+  const getStepIndicator = () => {
+    const steps = hasFees 
+      ? ['المعلومات', 'الدفع', 'التنفيذ', 'النتيجة']
+      : ['المعلومات', 'التنفيذ', 'النتيجة'];
+    
+    const currentIndex = hasFees
+      ? { info: 0, payment: 1, executing: 2, result: 3 }[currentStep]
+      : { info: 0, executing: 1, result: 2, payment: -1 }[currentStep];
+
+    return (
+      <div className="flex items-center justify-center gap-2 mb-6">
+        {steps.map((step, idx) => (
+          <div key={step} className="flex items-center gap-2">
+            <div 
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                idx <= currentIndex 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {idx < currentIndex ? <CheckCircle className="w-4 h-4" /> : idx + 1}
+            </div>
+            <span className={`text-xs hidden sm:inline ${idx <= currentIndex ? 'text-foreground' : 'text-muted-foreground'}`}>
+              {step}
+            </span>
+            {idx < steps.length - 1 && (
+              <div className={`w-8 h-0.5 ${idx < currentIndex ? 'bg-primary' : 'bg-muted'}`} />
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg max-h-[90vh]">
@@ -165,10 +251,12 @@ export function ServiceExecutionDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh]">
+        {getStepIndicator()}
+
+        <ScrollArea className="max-h-[50vh]">
           <div className="space-y-4 p-1">
-            {/* Service Info */}
-            {!result && (
+            {/* Step 1: Info */}
+            {currentStep === 'info' && (
               <>
                 {service.conditions && service.conditions.length > 0 && (
                   <div className="bg-muted/50 rounded-lg p-4">
@@ -215,68 +303,126 @@ export function ServiceExecutionDialog({
                   </div>
                 )}
 
-                <Separator />
-
-                {/* Form Fields */}
                 {formFields.length > 0 && (
-                  <div className="space-y-4">
-                    <h4 className="font-semibold text-right">المعلومات المطلوبة</h4>
-                    {formFields.map((field) => (
-                      <div key={field.id} className="space-y-2">
-                        <Label htmlFor={field.id} className="text-right block">
-                          {field.label}
-                        </Label>
-                        {field.type === 'select' ? (
-                          <Select
-                            value={formData[field.id] || ''}
-                            onValueChange={(value) =>
-                              setFormData((prev) => ({ ...prev, [field.id]: value }))
-                            }
-                          >
-                            <SelectTrigger className="text-right">
-                              <SelectValue placeholder="اختر..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {field.options?.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : field.type === 'date' ? (
-                          <Input
-                            id={field.id}
-                            type="date"
-                            value={formData[field.id] || ''}
-                            onChange={(e) =>
-                              setFormData((prev) => ({ ...prev, [field.id]: e.target.value }))
-                            }
-                            className="text-right"
-                          />
-                        ) : (
-                          <Input
-                            id={field.id}
-                            type="text"
-                            value={formData[field.id] || ''}
-                            onChange={(e) =>
-                              setFormData((prev) => ({ ...prev, [field.id]: e.target.value }))
-                            }
-                            className="text-right"
-                            placeholder={`أدخل ${field.label}`}
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  <>
+                    <Separator />
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-right">المعلومات المطلوبة</h4>
+                      {formFields.map((field) => (
+                        <div key={field.id} className="space-y-2">
+                          <Label htmlFor={field.id} className="text-right block">
+                            {field.label}
+                          </Label>
+                          {field.type === 'select' ? (
+                            <Select
+                              value={formData[field.id] || ''}
+                              onValueChange={(value) =>
+                                setFormData((prev) => ({ ...prev, [field.id]: value }))
+                              }
+                            >
+                              <SelectTrigger className="text-right">
+                                <SelectValue placeholder="اختر..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {field.options?.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : field.type === 'date' ? (
+                            <Input
+                              id={field.id}
+                              type="date"
+                              value={formData[field.id] || ''}
+                              onChange={(e) =>
+                                setFormData((prev) => ({ ...prev, [field.id]: e.target.value }))
+                              }
+                              className="text-right"
+                            />
+                          ) : (
+                            <Input
+                              id={field.id}
+                              type="text"
+                              value={formData[field.id] || ''}
+                              onChange={(e) =>
+                                setFormData((prev) => ({ ...prev, [field.id]: e.target.value }))
+                              }
+                              className="text-right"
+                              placeholder={`أدخل ${field.label}`}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
               </>
             )}
 
-            {/* Result */}
-            {result && (
+            {/* Step 2: Payment */}
+            {currentStep === 'payment' && (
+              <div className="space-y-4">
+                <div className="bg-primary/10 rounded-lg p-4 text-right">
+                  <p className="text-sm text-muted-foreground mb-1">المبلغ المطلوب</p>
+                  <p className="text-2xl font-bold text-primary">{service.fees}</p>
+                </div>
+
+                <h4 className="font-semibold text-right">اختر طريقة الدفع</h4>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  {paymentMethods.map((method) => {
+                    const Icon = method.icon;
+                    const isSelected = selectedPayment === method.id;
+                    return (
+                      <button
+                        key={method.id}
+                        onClick={() => setSelectedPayment(method.id)}
+                        className={`p-4 rounded-lg border-2 transition-all text-right ${
+                          isSelected 
+                            ? 'border-primary bg-primary/5' 
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <Icon className={`w-6 h-6 mb-2 mr-auto ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <p className={`text-sm font-medium ${isSelected ? 'text-primary' : ''}`}>
+                          {method.name}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="bg-muted/50 rounded-lg p-3 text-right text-sm text-muted-foreground">
+                  <Info className="w-4 h-4 inline ml-2" />
+                  سيتم تحويلك لإتمام عملية الدفع بشكل آمن
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Executing */}
+            {currentStep === 'executing' && (
+              <div className="py-12 text-center">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">جاري تنفيذ الخدمة...</h3>
+                <p className="text-muted-foreground text-sm">
+                  يرجى الانتظار، قد تستغرق العملية بضع ثوانٍ
+                </p>
+                {selectedPayment && (
+                  <p className="text-xs text-muted-foreground mt-4">
+                    تم الدفع عبر: {paymentMethods.find(m => m.id === selectedPayment)?.name}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Step 4: Result */}
+            {currentStep === 'result' && result && (
               <div
-                className={`rounded-lg p-4 ${
+                className={`rounded-lg p-6 ${
                   result.status === 'success'
                     ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800'
                     : result.status === 'error'
@@ -284,26 +430,26 @@ export function ServiceExecutionDialog({
                     : 'bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800'
                 }`}
               >
-                <div className="flex items-center gap-3 mb-3 justify-end">
-                  <span className="font-semibold">
+                <div className="text-center mb-4">
+                  {result.status === 'success' ? (
+                    <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-3" />
+                  ) : result.status === 'error' ? (
+                    <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-3" />
+                  ) : (
+                    <Clock className="w-16 h-16 text-amber-600 mx-auto mb-3" />
+                  )}
+                  <h3 className="text-xl font-bold">
                     {result.status === 'success'
-                      ? 'تم بنجاح'
+                      ? 'تم بنجاح!'
                       : result.status === 'error'
                       ? 'حدث خطأ'
                       : 'قيد المعالجة'}
-                  </span>
-                  {result.status === 'success' ? (
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                  ) : result.status === 'error' ? (
-                    <AlertCircle className="w-5 h-5 text-red-600" />
-                  ) : (
-                    <Clock className="w-5 h-5 text-amber-600" />
-                  )}
+                  </h3>
                 </div>
-                <p className="text-sm text-right">{result.message}</p>
+                <p className="text-sm text-center mb-4">{result.message}</p>
 
                 {result.data && (
-                  <div className="mt-4 pt-4 border-t space-y-2">
+                  <div className="space-y-2 pt-4 border-t">
                     {Object.entries(result.data).map(([key, value]) => (
                       <div key={key} className="flex justify-between text-sm">
                         <Badge variant="secondary">{String(value)}</Badge>
@@ -320,33 +466,56 @@ export function ServiceExecutionDialog({
                     ))}
                   </div>
                 )}
+
+                <p className="text-xs text-center text-muted-foreground mt-4">
+                  يمكنك متابعة طلبك من صفحة "طلباتي"
+                </p>
               </div>
             )}
           </div>
         </ScrollArea>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          {!result ? (
+          {currentStep === 'info' && (
             <>
               <Button variant="outline" onClick={handleClose}>
                 إلغاء
               </Button>
               <Button
-                onClick={handleExecute}
-                disabled={isExecuting}
-                className="gradient-primary text-primary-foreground"
+                onClick={handleNext}
+                className="gradient-primary text-primary-foreground gap-2"
               >
-                {isExecuting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                    جاري التنفيذ...
-                  </>
-                ) : (
-                  'تنفيذ الخدمة'
-                )}
+                {hasFees ? 'متابعة للدفع' : 'تنفيذ الخدمة'}
+                <ArrowLeft className="w-4 h-4" />
               </Button>
             </>
-          ) : (
+          )}
+
+          {currentStep === 'payment' && (
+            <>
+              <Button variant="outline" onClick={handleBack} className="gap-2">
+                <ArrowRight className="w-4 h-4" />
+                رجوع
+              </Button>
+              <Button
+                onClick={handleNext}
+                disabled={!selectedPayment}
+                className="gradient-primary text-primary-foreground gap-2"
+              >
+                إتمام الدفع والتنفيذ
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </>
+          )}
+
+          {currentStep === 'executing' && (
+            <Button disabled className="w-full gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              جاري التنفيذ...
+            </Button>
+          )}
+
+          {currentStep === 'result' && (
             <Button onClick={handleClose} className="w-full">
               إغلاق
             </Button>
