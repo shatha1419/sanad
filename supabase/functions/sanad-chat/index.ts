@@ -230,18 +230,52 @@ async function executeTool(toolName: string, args: Record<string, unknown>, supa
   
   switch (toolName) {
     case "check_fines": {
-      const fines = [
-        { id: "F001", amount: 150, reason: "تجاوز السرعة المحددة", date: "2024-01-15", location: "طريق الملك فهد" },
-        { id: "F002", amount: 500, reason: "قطع إشارة حمراء", date: "2024-02-20", location: "تقاطع العليا" },
-      ];
-      const total = fines.reduce((sum, f) => sum + f.amount, 0);
+      // Query real violations from database for this user
+      if (userId) {
+        const { data: violations, error } = await supabaseClient
+          .from('traffic_violations')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('is_paid', false);
+        
+        if (error) {
+          console.error('Error fetching violations:', error);
+          return {
+            status: "error",
+            message: "حدث خطأ في استعلام المخالفات",
+            fees: 0
+          };
+        }
+        
+        if (!violations || violations.length === 0) {
+          return {
+            status: "success",
+            message: "لا توجد مخالفات مرورية مسجلة عليك",
+            data: {
+              عدد_المخالفات: "0",
+              الإجمالي: "0 ريال"
+            },
+            fees: 0
+          };
+        }
+        
+        const total = violations.reduce((sum: number, v: Record<string, unknown>) => sum + Number(v.amount), 0);
+        return {
+          status: "success",
+          message: `لديك ${violations.length} مخالفة غير مدفوعة`,
+          data: { 
+            عدد_المخالفات: violations.length.toString(),
+            الإجمالي: `${total} ريال`,
+            تفاصيل_المخالفات: violations.map((v: Record<string, unknown>) => `${v.violation_type} (${v.amount} ريال) - ${v.location}`).join(' | ')
+          },
+          fees: 0
+        };
+      }
+      
+      // Fallback if no userId
       return {
-        status: "success",
-        message: `تم العثور على ${fines.length} مخالفات بإجمالي ${total} ريال`,
-        data: { 
-          المخالفات: fines.map(f => `${f.reason} - ${f.amount} ريال`),
-          الإجمالي: `${total} ريال`
-        },
+        status: "info",
+        message: "يرجى تسجيل الدخول للاستعلام عن المخالفات",
         fees: 0
       };
     }
@@ -342,12 +376,30 @@ async function executeTool(toolName: string, args: Record<string, unknown>, supa
     }
 
     case "violation_objection": {
+      // Validate required fields
+      if (!args.violation_number) {
+        return {
+          status: "error",
+          message: "يرجى تحديد رقم المخالفة المراد الاعتراض عليها",
+          fees: 0
+        };
+      }
+      
+      if (!args.reason) {
+        return {
+          status: "error",
+          message: "يرجى كتابة سبب الاعتراض",
+          fees: 0
+        };
+      }
+      
       return {
         status: "success",
-        message: `تم تقديم الاعتراض على المخالفة بنجاح`,
+        message: `تم تقديم الاعتراض على المخالفة رقم ${args.violation_number} بنجاح`,
         data: { 
           رقم_الاعتراض: `OB${Date.now().toString().slice(-6)}`,
-          رقم_المخالفة: args.violation_number || "غير محدد",
+          رقم_المخالفة: args.violation_number,
+          سبب_الاعتراض: args.reason,
           الرسوم: "مجاني",
           المدة_المتوقعة: "30 يوم عمل"
         },
