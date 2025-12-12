@@ -614,18 +614,31 @@ serve(async (req) => {
       const result = await executeTool(tool, args || {}, supabaseClient, userId);
       
       // Save to service_requests if userId provided
-      if (userId && result.status !== 'error') {
+      if (userId) {
         const serviceName = body.serviceName || tool;
         const serviceCategory = body.serviceCategory || 'direct';
         
-        await supabaseClient.from('service_requests').insert({
+        console.log('Saving service request:', { userId, serviceName, serviceCategory, status: result.status });
+        
+        const { data: insertedData, error: insertError } = await supabaseClient.from('service_requests').insert({
           user_id: userId,
           service_type: serviceName,
           service_category: serviceCategory,
-          status: result.status === 'success' ? 'completed' : 'pending',
-          request_data: { tool, args, execution_type: 'direct', payment_method: args?.payment_method || null },
+          status: result.status === 'success' ? 'completed' : (result.status === 'pending' ? 'pending' : 'processing'),
+          request_data: { 
+            tool, 
+            args: args || {}, 
+            execution_type: 'auto', 
+            payment_method: args?.payment_method || null 
+          },
           result_data: result.data || null
-        });
+        }).select().single();
+        
+        if (insertError) {
+          console.error('Error saving service request:', insertError);
+        } else {
+          console.log('Service request saved successfully:', insertedData?.id);
+        }
       }
       
       return new Response(JSON.stringify(result), {
@@ -747,7 +760,9 @@ ${servicesContext}
         
         // Save to service_requests
         if (userId && toolName !== 'search_knowledge') {
-          await supabaseClient.from('service_requests').insert({
+          console.log('Saving chat service request:', { userId, toolName });
+          
+          const { error: insertError } = await supabaseClient.from('service_requests').insert({
             user_id: userId,
             service_type: toolName,
             service_category: 'chat',
@@ -755,6 +770,12 @@ ${servicesContext}
             request_data: { tool: toolName, args: toolArgs, execution_type: 'agent' },
             result_data: result.data || null
           });
+          
+          if (insertError) {
+            console.error('Error saving chat service request:', insertError);
+          } else {
+            console.log('Chat service request saved successfully');
+          }
         }
       }
 

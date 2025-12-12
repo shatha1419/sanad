@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 import { 
   Loader2, 
   ClipboardList, 
@@ -17,7 +18,8 @@ import {
   ArrowLeft,
   Eye,
   Bot,
-  RefreshCw
+  RefreshCw,
+  Bell
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -67,13 +69,7 @@ export default function Requests() {
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
 
-  useEffect(() => {
-    if (user) {
-      loadData();
-    }
-  }, [user]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     
     const [requestsResult, conversationsResult] = await Promise.all([
@@ -91,7 +87,62 @@ export default function Requests() {
     if (conversationsResult.data) setConversations(conversationsResult.data);
     
     setLoading(false);
-  };
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    if (user) {
+      loadData();
+    }
+  }, [user, loadData]);
+
+  // Real-time subscription for service_requests
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('service-requests-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'service_requests',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Realtime update:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const newRequest = payload.new as ServiceRequest;
+            setRequests(prev => [newRequest, ...prev]);
+            toast.success('تم إضافة طلب جديد', {
+              description: newRequest.service_type,
+              icon: <Bell className="w-4 h-4" />
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedRequest = payload.new as ServiceRequest;
+            setRequests(prev => 
+              prev.map(req => req.id === updatedRequest.id ? updatedRequest : req)
+            );
+            
+            const status = statusConfig[updatedRequest.status];
+            toast.info('تم تحديث حالة الطلب', {
+              description: `${updatedRequest.service_type}: ${status?.label || updatedRequest.status}`,
+              icon: <RefreshCw className="w-4 h-4" />
+            });
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old.id;
+            setRequests(prev => prev.filter(req => req.id !== deletedId));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const formatDate = (date: string) => {
     return format(new Date(date), 'dd MMMM yyyy - HH:mm', { locale: ar });
