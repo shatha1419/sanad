@@ -3,16 +3,11 @@ import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SERVICES, ServiceItem } from '@/lib/constants';
-import { ArrowRight, ChevronLeft, BookOpen, Car, IdCard, Loader2 } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronDown, BookOpen, Car, IdCard, FileText, CreditCard } from 'lucide-react';
 import { useState } from 'react';
-import { useAgentAction } from '@/hooks/useAgentAction';
-import { toast } from 'sonner';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { BackButton } from '@/components/BackButton';
+import { ServiceExecutionDialog } from '@/components/services/ServiceExecutionDialog';
+import { cn } from '@/lib/utils';
 
 const iconMap: Record<string, React.ReactNode> = {
   BookOpen: <BookOpen className="w-6 h-6" />,
@@ -23,13 +18,9 @@ const iconMap: Record<string, React.ReactNode> = {
 export default function ServiceCategory() {
   const { categoryId } = useParams<{ categoryId: string }>();
   const navigate = useNavigate();
-  const { executeAction, loading: isExecuting } = useAgentAction();
   const [expandedService, setExpandedService] = useState<string | null>(null);
-  const [resultDialog, setResultDialog] = useState<{ open: boolean; title: string; result: unknown }>({
-    open: false,
-    title: '',
-    result: null,
-  });
+  const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const category = categoryId ? SERVICES[categoryId] : null;
 
@@ -46,44 +37,29 @@ export default function ServiceCategory() {
     );
   }
 
-  const handleServiceClick = async (service: ServiceItem) => {
+  const handleServiceClick = (service: ServiceItem) => {
     if (service.subServices && service.subServices.length > 0) {
       // Toggle expansion for services with sub-services
       setExpandedService(expandedService === service.id ? null : service.id);
-    } else if (service.actionType === 'direct' && service.agentTool) {
-      // Execute agent action directly
-      try {
-        const result = await executeAction(service.agentTool);
-        setResultDialog({
-          open: true,
-          title: service.name,
-          result,
-        });
-      } catch (error) {
-        toast.error('حدث خطأ أثناء تنفيذ الخدمة');
-      }
+    } else if (service.actionType === 'chat') {
+      // Navigate to chat with initial message
+      navigate('/chat', { state: { initialMessage: `أريد ${service.name}` } });
     } else {
-      // Navigate to service detail page
-      navigate(`/services/${categoryId}/${service.id}`);
+      // Open the service execution dialog
+      setSelectedService(service);
+      setDialogOpen(true);
     }
   };
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6">
+      <div className="p-4 pb-24">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/')}
-            className="shrink-0"
-          >
-            <ArrowRight className="w-5 h-5" />
-          </Button>
+          <BackButton />
           <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-xl bg-secondary flex items-center justify-center ${category.color}`}>
-              {iconMap[category.icon]}
+            <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center', category.bgColor)}>
+              <span className={category.color}>{iconMap[category.icon]}</span>
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">{category.name}</h1>
@@ -97,22 +73,33 @@ export default function ServiceCategory() {
           {category.services.map((service) => (
             <div key={service.id}>
               <Card
-                className="cursor-pointer hover:shadow-sanad transition-all duration-200 bg-card border-border"
+                className="cursor-pointer hover:shadow-sanad transition-all duration-200 bg-card border-border overflow-hidden"
                 onClick={() => handleServiceClick(service)}
               >
                 <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <ChevronLeft className={`w-5 h-5 text-muted-foreground transition-transform ${
-                      service.subServices && expandedService === service.id ? 'rotate-90' : ''
-                    }`} />
-                    <div className="flex-1 text-right mr-3">
-                      <h3 className="font-semibold text-foreground">{service.name}</h3>
-                      <p className="text-sm text-muted-foreground">{service.description}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/5 flex items-center justify-center flex-shrink-0">
+                      <FileText className="w-5 h-5 text-primary/70" />
                     </div>
-                    {service.actionType === 'direct' && (
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                        تنفيذ مباشر
-                      </span>
+                    <div className="flex-1 text-right min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                        <h3 className="font-semibold text-foreground">{service.name}</h3>
+                        {service.fees && service.fees !== 'مجاني' && (
+                          <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full flex items-center gap-1">
+                            <CreditCard className="w-3 h-3" />
+                            {service.fees}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">{service.description}</p>
+                    </div>
+                    {service.subServices && service.subServices.length > 0 ? (
+                      <ChevronDown className={cn(
+                        'w-5 h-5 text-muted-foreground transition-transform flex-shrink-0',
+                        expandedService === service.id && 'rotate-180'
+                      )} />
+                    ) : (
+                      <ChevronLeft className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                     )}
                   </div>
                 </CardContent>
@@ -120,7 +107,7 @@ export default function ServiceCategory() {
 
               {/* Sub-services */}
               {service.subServices && expandedService === service.id && (
-                <div className="mr-6 mt-2 space-y-2 animate-fade-in">
+                <div className="mr-4 mt-2 space-y-2 animate-fade-in border-r-2 border-primary/20 pr-4">
                   {service.subServices.map((subService) => (
                     <Card
                       key={subService.id}
@@ -131,16 +118,22 @@ export default function ServiceCategory() {
                       }}
                     >
                       <CardContent className="p-3">
-                        <div className="flex items-center justify-between">
-                          <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-                          <div className="flex-1 text-right mr-2">
-                            <h4 className="text-sm font-medium text-foreground">{subService.name}</h4>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center flex-shrink-0">
+                            <FileText className="w-4 h-4 text-primary/60" />
                           </div>
-                          {subService.actionType === 'direct' && (
-                            <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                              مباشر
-                            </span>
-                          )}
+                          <div className="flex-1 text-right min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap justify-end">
+                              <h4 className="text-sm font-medium text-foreground">{subService.name}</h4>
+                              {subService.fees && subService.fees !== 'مجاني' && (
+                                <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
+                                  {subService.fees}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">{subService.description}</p>
+                          </div>
+                          <ChevronLeft className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                         </div>
                       </CardContent>
                     </Card>
@@ -152,32 +145,13 @@ export default function ServiceCategory() {
         </div>
       </div>
 
-      {/* Loading Overlay */}
-      {isExecuting && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-foreground font-medium">جاري تنفيذ الخدمة...</p>
-          </div>
-        </div>
-      )}
-
-      {/* Result Dialog */}
-      <Dialog open={resultDialog.open} onOpenChange={(open) => setResultDialog({ ...resultDialog, open })}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-right">{resultDialog.title}</DialogTitle>
-          </DialogHeader>
-          <div className="p-4 bg-muted rounded-lg text-right">
-            <pre className="text-sm whitespace-pre-wrap direction-rtl">
-              {JSON.stringify(resultDialog.result, null, 2)}
-            </pre>
-          </div>
-          <Button onClick={() => setResultDialog({ ...resultDialog, open: false })} className="w-full gradient-primary">
-            إغلاق
-          </Button>
-        </DialogContent>
-      </Dialog>
+      {/* Service Execution Dialog */}
+      <ServiceExecutionDialog
+        service={selectedService}
+        category={categoryId || ''}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </Layout>
   );
 }
