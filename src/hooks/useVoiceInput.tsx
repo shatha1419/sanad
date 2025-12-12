@@ -1,192 +1,176 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UseVoiceInputOptions {
   onTranscript?: (text: string) => void;
   onError?: (error: string) => void;
 }
 
-// Check if SpeechRecognition is available
-const getSpeechRecognition = () => {
-  if (typeof window === 'undefined') return null;
-  
-  // Try different vendor prefixes
-  const SpeechRecognitionAPI = 
-    (window as any).SpeechRecognition ||
-    (window as any).webkitSpeechRecognition ||
-    (window as any).mozSpeechRecognition ||
-    (window as any).msSpeechRecognition;
-  
-  return SpeechRecognitionAPI || null;
-};
-
 export function useVoiceInput({ onTranscript, onError }: UseVoiceInputOptions = {}) {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isSupported, setIsSupported] = useState(true);
-  const recognitionRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
 
-  useEffect(() => {
-    // Check support on mount
-    const supported = getSpeechRecognition() !== null;
-    setIsSupported(supported);
-  }, []);
-
-  // Try Web Speech API first (works on most browsers)
   const startLiveRecognition = useCallback((): Promise<string | null> => {
-    return new Promise((resolve) => {
-      const SpeechRecognitionAPI = getSpeechRecognition();
-      
-      if (!SpeechRecognitionAPI) {
-        // Fallback to MediaRecorder approach
-        console.log('Web Speech API not available, using MediaRecorder fallback');
-        startMediaRecording(resolve);
-        return;
-      }
-
-      // Stop any existing recognition
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch (e) {
-          console.log('Error aborting previous recognition:', e);
-        }
-      }
-
-      setIsRecording(true);
-      
+    return new Promise(async (resolve) => {
       try {
-        const recognition = new SpeechRecognitionAPI();
-        recognitionRef.current = recognition;
+        // Request microphone access
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            sampleRate: 16000,
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          } 
+        });
         
-        recognition.lang = 'ar-SA';
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-
-        recognition.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          setIsRecording(false);
-          setIsProcessing(false);
-          onTranscript?.(transcript);
-          resolve(transcript);
+        streamRef.current = stream;
+        setIsRecording(true);
+        chunksRef.current = [];
+        
+        // Determine best supported format
+        let mimeType = 'audio/webm';
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+          mimeType = 'audio/ogg';
+        }
+        
+        console.log('Using MIME type:', mimeType);
+        
+        const mediaRecorder = new MediaRecorder(stream, { mimeType });
+        mediaRecorderRef.current = mediaRecorder;
+        
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            chunksRef.current.push(e.data);
+          }
         };
-
-        recognition.onerror = (event: any) => {
-          console.error('Speech recognition error:', event.error);
-          setIsRecording(false);
-          setIsProcessing(false);
+        
+        mediaRecorder.onstop = async () => {
+          // Stop all tracks
+          stream.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
           
-          if (event.error === 'not-allowed') {
-            toast.error('يرجى السماح بالوصول للميكروفون');
-          } else if (event.error === 'no-speech') {
-            toast.error('لم يتم اكتشاف صوت. حاول مرة أخرى.');
-          } else if (event.error === 'audio-capture') {
-            toast.error('لم يتم العثور على ميكروفون');
-          } else if (event.error === 'network') {
-            toast.error('خطأ في الاتصال بالإنترنت');
-          } else {
-            // Try fallback
-            console.log('Trying MediaRecorder fallback due to error:', event.error);
-            startMediaRecording(resolve);
+          if (chunksRef.current.length === 0) {
+            setIsRecording(false);
+            setIsProcessing(false);
+            toast.error('لم يتم تسجيل أي صوت');
+            resolve(null);
             return;
           }
-          resolve(null);
+          
+          setIsProcessing(true);
+          toast.info('جاري تحويل الصوت إلى نص...');
+          
+          try {
+            // Create audio blob
+            const audioBlob = new Blob(chunksRef.current, { type: mimeType.split(';')[0] });
+            console.log('Audio blob size:', audioBlob.size);
+            
+            // Convert to base64
+            const reader = new FileReader();
+            reader.onload = async () => {
+              try {
+                const base64 = (reader.result as string).split(',')[1];
+                
+                // Send to edge function
+                const { data, error } = await supabase.functions.invoke('voice-to-text', {
+                  body: { 
+                    audio: base64,
+                    mimeType: mimeType.split(';')[0]
+                  }
+                });
+                
+                setIsProcessing(false);
+                setIsRecording(false);
+                
+                if (error) {
+                  console.error('Voice-to-text error:', error);
+                  toast.error('فشل تحويل الصوت. حاول مرة أخرى.');
+                  onError?.('فشل تحويل الصوت');
+                  resolve(null);
+                  return;
+                }
+                
+                if (data?.text) {
+                  console.log('Transcription:', data.text);
+                  toast.success('تم التعرف على الصوت بنجاح');
+                  onTranscript?.(data.text);
+                  resolve(data.text);
+                } else {
+                  toast.error('لم يتم التعرف على كلام. حاول مرة أخرى.');
+                  resolve(null);
+                }
+              } catch (err) {
+                console.error('Error processing audio:', err);
+                setIsProcessing(false);
+                setIsRecording(false);
+                toast.error('حدث خطأ. حاول مرة أخرى.');
+                resolve(null);
+              }
+            };
+            
+            reader.onerror = () => {
+              setIsProcessing(false);
+              setIsRecording(false);
+              toast.error('فشل في قراءة الملف الصوتي');
+              resolve(null);
+            };
+            
+            reader.readAsDataURL(audioBlob);
+            
+          } catch (error) {
+            console.error('Error processing recording:', error);
+            setIsProcessing(false);
+            setIsRecording(false);
+            toast.error('فشل في معالجة التسجيل');
+            resolve(null);
+          }
         };
-
-        recognition.onend = () => {
-          setIsRecording(false);
-          setIsProcessing(false);
-        };
-
-        recognition.start();
-        toast.info('جاري الاستماع... تحدث الآن', { duration: 2000 });
+        
+        mediaRecorder.start(100); // Collect data every 100ms
+        toast.info('🎙️ جاري التسجيل... تحدث الآن، ثم اضغط مرة أخرى للإيقاف', { duration: 3000 });
+        
+        // Auto-stop after 30 seconds
+        setTimeout(() => {
+          if (mediaRecorderRef.current?.state === 'recording') {
+            toast.info('تم إيقاف التسجيل تلقائياً (30 ثانية كحد أقصى)');
+            mediaRecorderRef.current.stop();
+          }
+        }, 30000);
         
       } catch (error) {
-        console.error('Error starting speech recognition:', error);
+        console.error('Error starting recording:', error);
         setIsRecording(false);
-        // Try fallback
-        startMediaRecording(resolve);
+        setIsProcessing(false);
+        toast.error('فشل في الوصول للميكروفون. تأكد من إعطاء الإذن.');
+        onError?.('فشل في الوصول للميكروفون');
+        resolve(null);
       }
     });
-  }, [onTranscript]);
-
-  // MediaRecorder fallback for browsers without Web Speech API
-  const startMediaRecording = async (resolve: (value: string | null) => void) => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          sampleRate: 16000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-        } 
-      });
-      
-      setIsRecording(true);
-      chunksRef.current = [];
-      
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4',
-      });
-      
-      mediaRecorderRef.current = mediaRecorder;
-      
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
-        }
-      };
-      
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach(track => track.stop());
-        setIsRecording(false);
-        
-        // For now, just inform user that voice was recorded
-        // In production, you'd send this to a speech-to-text API
-        toast.info('تم تسجيل الصوت. استخدم الكتابة حالياً.');
-        resolve(null);
-      };
-      
-      mediaRecorder.start();
-      toast.info('جاري التسجيل... اضغط مرة أخرى للإيقاف', { duration: 3000 });
-      
-      // Auto-stop after 10 seconds
-      setTimeout(() => {
-        if (mediaRecorderRef.current?.state === 'recording') {
-          mediaRecorderRef.current.stop();
-        }
-      }, 10000);
-      
-    } catch (error) {
-      console.error('Error starting media recording:', error);
-      setIsRecording(false);
-      toast.error('فشل في الوصول للميكروفون. تأكد من إعطاء الإذن.');
-      onError?.('فشل في الوصول للميكروفون');
-      resolve(null);
-    }
-  };
+  }, [onTranscript, onError]);
 
   const stopRecording = useCallback(() => {
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch (e) {
-        console.log('Error stopping recognition:', e);
-      }
-    }
     if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop();
     }
-    setIsRecording(false);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
   }, []);
 
   return {
     isRecording,
     isProcessing,
-    isSupported,
+    isSupported: true,
     startLiveRecognition,
     stopRecording,
   };
