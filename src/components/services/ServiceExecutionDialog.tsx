@@ -277,31 +277,88 @@ export function ServiceExecutionDialog({
 
   const getFormFields = (): FormField[] => {
     switch (service.agentTool) {
+      // Traffic services
       case 'renew_license':
         return [
           { id: 'duration_years', label: 'مدة التجديد', type: 'select', options: [{ value: '5', label: '5 سنوات - 200 ريال' }, { value: '10', label: '10 سنوات - 400 ريال' }], required: true },
         ];
-      case 'renew_passport':
+      case 'issue_license':
         return [
-          { id: 'duration_years', label: 'مدة الجواز', type: 'select', options: [{ value: '5', label: '5 سنوات - 300 ريال' }, { value: '10', label: '10 سنوات - 600 ريال' }], required: true },
+          { id: 'license_type', label: 'نوع الرخصة', type: 'select', options: [
+            { value: 'private', label: 'خاصة - 100 ريال' },
+            { value: 'public', label: 'عامة - 200 ريال' },
+            { value: 'motorcycle', label: 'دراجة نارية - 100 ريال' },
+            { value: 'heavy', label: 'مركبات ثقيلة - 400 ريال' },
+          ], required: true },
+          { id: 'training_center', label: 'مركز التدريب', type: 'text', required: true },
         ];
-      case 'renew_id':
+      case 'renew_vehicle_registration':
         return [
-          { id: 'delivery_type', label: 'طريقة الاستلام', type: 'select', options: [{ value: 'mail', label: 'توصيل للعنوان الوطني' }, { value: 'office', label: 'استلام من الفرع' }], required: true },
+          { id: 'plate_number', label: 'رقم لوحة المركبة', type: 'text', required: true },
+          { id: 'duration_years', label: 'مدة التجديد', type: 'select', options: [
+            { value: '1', label: 'سنة واحدة - 100 ريال' },
+            { value: '2', label: 'سنتين - 200 ريال' },
+            { value: '3', label: '3 سنوات - 300 ريال' },
+          ], required: true },
         ];
-      case 'exit_reentry_visa':
+      case 'transfer_vehicle_ownership':
         return [
-          { id: 'visa_type', label: 'نوع التأشيرة', type: 'select', options: [{ value: 'single', label: 'مفردة - 200 ريال' }, { value: 'multiple', label: 'متعددة - 500 ريال' }], required: true },
-          { id: 'duration_months', label: 'المدة (بالأشهر)', type: 'select', options: [{ value: '2', label: 'شهرين' }, { value: '3', label: '3 أشهر' }, { value: '6', label: '6 أشهر' }], required: true },
+          { id: 'plate_number', label: 'رقم لوحة المركبة', type: 'text', required: true },
+          { id: 'buyer_id', label: 'رقم هوية المشتري', type: 'text', required: true },
+          { id: 'sale_price', label: 'مبلغ البيع (ريال)', type: 'text' },
         ];
-      case 'book_appointment':
+      case 'add_vehicle_user':
         return [
-          { id: 'preferred_date', label: 'التاريخ المفضل', type: 'date', required: true },
+          { id: 'plate_number', label: 'رقم لوحة المركبة', type: 'text', required: true },
+          { id: 'user_id', label: 'رقم هوية المستخدم', type: 'text', required: true },
         ];
+      case 'remove_vehicle_user':
+        return [
+          { id: 'plate_number', label: 'رقم لوحة المركبة', type: 'text', required: true },
+          { id: 'user_id', label: 'رقم هوية المستخدم', type: 'text', required: true },
+        ];
+      case 'check_fines':
+        // No input needed - just query
+        return [];
       case 'violation_objection':
         return [
           { id: 'violation_number', label: 'رقم المخالفة', type: 'violation_select', required: true },
           { id: 'reason', label: 'سبب الاعتراض', type: 'voice_text', required: true },
+        ];
+      case 'book_appointment':
+        return [
+          { id: 'branch', label: 'الفرع', type: 'select', options: [
+            { value: 'riyadh_main', label: 'الرياض - الفرع الرئيسي' },
+            { value: 'riyadh_north', label: 'الرياض - الشمال' },
+            { value: 'riyadh_south', label: 'الرياض - الجنوب' },
+            { value: 'jeddah_main', label: 'جدة - الفرع الرئيسي' },
+            { value: 'dammam_main', label: 'الدمام - الفرع الرئيسي' },
+          ], required: true },
+          { id: 'preferred_date', label: 'التاريخ المفضل', type: 'date', required: true },
+        ];
+      
+      // Civil Affairs services
+      case 'renew_id':
+        return [
+          { id: 'delivery_type', label: 'طريقة الاستلام', type: 'select', options: [
+            { value: 'mail', label: 'توصيل للعنوان الوطني - 30 ريال' },
+            { value: 'office', label: 'استلام من الفرع - مجاني' },
+          ], required: true },
+        ];
+      case 'issue_new_id':
+        return [
+          { id: 'guardian_id', label: 'رقم هوية ولي الأمر', type: 'text', required: true },
+          { id: 'delivery_type', label: 'طريقة الاستلام', type: 'select', options: [
+            { value: 'mail', label: 'توصيل للعنوان الوطني - 30 ريال' },
+            { value: 'office', label: 'استلام من الفرع - مجاني' },
+          ], required: true },
+        ];
+      case 'issue_family_record':
+        return [
+          { id: 'record_type', label: 'نوع السجل', type: 'select', options: [
+            { value: 'father', label: 'سجل أسرة للأب' },
+            { value: 'mother', label: 'سجل أسرة للأم' },
+          ], required: true },
         ];
       case 'register_newborn':
         return [
@@ -310,12 +367,6 @@ export function ServiceExecutionDialog({
           { id: 'birth_date', label: 'تاريخ الميلاد', type: 'date', required: true },
           { id: 'birth_place', label: 'مكان الولادة', type: 'text', required: true },
           { id: 'hospital_name', label: 'اسم المستشفى', type: 'text', required: true },
-        ];
-      case 'transfer_vehicle_ownership':
-        return [
-          { id: 'buyer_id', label: 'رقم هوية المشتري', type: 'text', required: true },
-          { id: 'plate_number', label: 'رقم لوحة المركبة', type: 'text', required: true },
-          { id: 'sale_price', label: 'مبلغ البيع (ريال)', type: 'text' },
         ];
       case 'update_qualification':
         return [
@@ -329,6 +380,79 @@ export function ServiceExecutionDialog({
           { id: 'institution', label: 'الجهة المانحة', type: 'text', required: true },
           { id: 'graduation_year', label: 'سنة التخرج', type: 'text' },
         ];
+      case 'update_english_name':
+        return [
+          { id: 'english_first_name', label: 'الاسم الأول بالإنجليزية', type: 'text', required: true },
+          { id: 'english_last_name', label: 'اسم العائلة بالإنجليزية', type: 'text', required: true },
+        ];
+
+      // Passport services
+      case 'renew_passport':
+        return [
+          { id: 'duration_years', label: 'مدة الجواز', type: 'select', options: [
+            { value: '5', label: '5 سنوات - 300 ريال' },
+            { value: '10', label: '10 سنوات - 600 ريال' },
+          ], required: true },
+        ];
+      case 'issue_passport':
+        return [
+          { id: 'duration_years', label: 'مدة الجواز', type: 'select', options: [
+            { value: '5', label: '5 سنوات - 300 ريال' },
+            { value: '10', label: '10 سنوات - 600 ريال' },
+          ], required: true },
+          { id: 'guardian_consent', label: 'موافقة ولي الأمر (إن وجد)', type: 'select', options: [
+            { value: 'not_required', label: 'غير مطلوبة - عمري 21+' },
+            { value: 'approved', label: 'تم الحصول على الموافقة' },
+          ], required: true },
+        ];
+      case 'renew_iqama':
+        return [
+          { id: 'worker_iqama_number', label: 'رقم إقامة العامل', type: 'text', required: true },
+          { id: 'duration_years', label: 'مدة التجديد', type: 'select', options: [
+            { value: '1', label: 'سنة واحدة' },
+            { value: '2', label: 'سنتين' },
+          ], required: true },
+        ];
+      case 'transfer_passport_info':
+        return [
+          { id: 'old_passport_number', label: 'رقم الجواز القديم', type: 'text', required: true },
+          { id: 'new_passport_number', label: 'رقم الجواز الجديد', type: 'text', required: true },
+          { id: 'new_expiry_date', label: 'تاريخ انتهاء الجواز الجديد', type: 'date', required: true },
+        ];
+      case 'exit_reentry_visa':
+        return [
+          { id: 'visa_type', label: 'نوع التأشيرة', type: 'select', options: [
+            { value: 'single', label: 'مفردة - 200 ريال' },
+            { value: 'multiple', label: 'متعددة - 500 ريال' },
+          ], required: true },
+          { id: 'duration_months', label: 'المدة (بالأشهر)', type: 'select', options: [
+            { value: '2', label: 'شهرين' },
+            { value: '3', label: '3 أشهر' },
+            { value: '6', label: '6 أشهر' },
+          ], required: true },
+          { id: 'worker_iqama_number', label: 'رقم إقامة المستفيد', type: 'text', required: true },
+        ];
+      case 'final_exit_visa':
+        return [
+          { id: 'worker_iqama_number', label: 'رقم إقامة المستفيد', type: 'text', required: true },
+          { id: 'exit_reason', label: 'سبب الخروج', type: 'select', options: [
+            { value: 'end_contract', label: 'انتهاء العقد' },
+            { value: 'resignation', label: 'استقالة' },
+            { value: 'transfer', label: 'نقل كفالة للخارج' },
+            { value: 'other', label: 'أخرى' },
+          ], required: true },
+        ];
+      case 'transfer_sponsorship':
+        return [
+          { id: 'worker_iqama_number', label: 'رقم إقامة العامل', type: 'text', required: true },
+          { id: 'new_sponsor_id', label: 'رقم هوية/سجل الكفيل الجديد', type: 'text', required: true },
+          { id: 'transfer_reason', label: 'سبب النقل', type: 'select', options: [
+            { value: 'end_contract', label: 'انتهاء العقد' },
+            { value: 'mutual_agreement', label: 'اتفاق الطرفين' },
+            { value: 'salary_delay', label: 'تأخر الرواتب' },
+          ], required: true },
+        ];
+      
       default:
         return [];
     }
