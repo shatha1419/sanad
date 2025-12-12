@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
-import { X, Send, Mic, Loader2, Bot, CheckCircle, MicOff, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, Send, Mic, Loader2, Bot, CheckCircle, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useChat, Message } from '@/hooks/useChat';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
+import { useTextToSpeech } from '@/hooks/useTextToSpeech';
+import { VoiceLevelIndicator } from '@/components/VoiceLevelIndicator';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import sanadLogo from '@/assets/sanad-logo.svg';
@@ -20,13 +22,37 @@ export function FloatingChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [serviceContext, setServiceContext] = useState<ServiceContext | null>(null);
+  const [voiceVolume, setVoiceVolume] = useState(0);
+  const [autoSpeak, setAutoSpeak] = useState(true);
+  const lastMessageRef = useRef<string | null>(null);
   const { messages, isLoading, sendMessage, clearMessages, loadConversation } = useChat();
   
-  const { isRecording, isProcessing, startLiveRecognition, stopRecording } = useVoiceInput({
+  const { isRecording, isProcessing, volume, startLiveRecognition, stopRecording } = useVoiceInput({
     onTranscript: (text) => {
-      setInput(prev => (prev ? prev + ' ' : '') + text);
+      setInput(text);
+    },
+    onVolumeChange: setVoiceVolume,
+  });
+
+  const { speak, stop: stopSpeaking, isSpeaking, isSupported: ttsSupported } = useTextToSpeech({
+    onEnd: () => {
+      console.log('Finished speaking');
     },
   });
+
+  // Auto-speak new assistant messages
+  useEffect(() => {
+    if (!autoSpeak || !ttsSupported || isLoading) return;
+    
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.role === 'assistant' && lastMessage.content !== lastMessageRef.current) {
+      lastMessageRef.current = lastMessage.content;
+      // Delay slightly to ensure message is fully rendered
+      setTimeout(() => {
+        speak(lastMessage.content);
+      }, 300);
+    }
+  }, [messages, autoSpeak, ttsSupported, isLoading, speak]);
 
   // Listen for openChatWithContext event
   useEffect(() => {
@@ -58,6 +84,7 @@ export function FloatingChat() {
     if (!input.trim() || isLoading) return;
     const message = input.trim();
     setInput('');
+    stopSpeaking();
     await sendMessage(message, 'text');
   };
 
@@ -71,18 +98,39 @@ export function FloatingChat() {
   const handleClose = () => {
     setIsOpen(false);
     setServiceContext(null);
+    stopSpeaking();
   };
 
   const handleNewChat = () => {
     clearMessages();
     setServiceContext(null);
+    stopSpeaking();
+    lastMessageRef.current = null;
   };
 
   const handleVoiceInput = async () => {
     if (isRecording || isProcessing) {
       stopRecording();
     } else {
+      stopSpeaking();
+      setInput('');
       await startLiveRecognition();
+    }
+  };
+
+  const toggleAutoSpeak = () => {
+    if (isSpeaking) {
+      stopSpeaking();
+    }
+    setAutoSpeak(!autoSpeak);
+    toast.info(autoSpeak ? 'تم إيقاف النطق التلقائي' : 'تم تفعيل النطق التلقائي');
+  };
+
+  const speakMessage = (content: string) => {
+    if (isSpeaking) {
+      stopSpeaking();
+    } else {
+      speak(content);
     }
   };
 
@@ -146,12 +194,30 @@ export function FloatingChat() {
           {/* Header */}
           <div className="gradient-primary p-4 text-primary-foreground">
             <div className="flex items-center justify-between">
-              <button
-                onClick={handleNewChat}
-                className="text-xs bg-primary-foreground/20 px-3 py-1 rounded-full hover:bg-primary-foreground/30 transition-colors"
-              >
-                محادثة جديدة
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleNewChat}
+                  className="text-xs bg-primary-foreground/20 px-3 py-1 rounded-full hover:bg-primary-foreground/30 transition-colors"
+                >
+                  محادثة جديدة
+                </button>
+                {ttsSupported && (
+                  <button
+                    onClick={toggleAutoSpeak}
+                    className={cn(
+                      "p-1.5 rounded-full transition-colors",
+                      autoSpeak ? "bg-primary-foreground/30" : "bg-primary-foreground/10"
+                    )}
+                    title={autoSpeak ? 'إيقاف النطق التلقائي' : 'تفعيل النطق التلقائي'}
+                  >
+                    {autoSpeak ? (
+                      <Volume2 className="w-4 h-4" />
+                    ) : (
+                      <VolumeX className="w-4 h-4 opacity-60" />
+                    )}
+                  </button>
+                )}
+              </div>
               <div className="flex items-center gap-3">
                 <div>
                   <h3 className="font-bold text-right">المساعد سَنَد</h3>
@@ -159,7 +225,10 @@ export function FloatingChat() {
                     {serviceContext ? `يساعدك في: ${serviceContext.service}` : 'كيف يمكنني مساعدتك؟'}
                   </p>
                 </div>
-                <div className="w-10 h-10 bg-primary-foreground/20 rounded-xl flex items-center justify-center">
+                <div className={cn(
+                  "w-10 h-10 bg-primary-foreground/20 rounded-xl flex items-center justify-center",
+                  isSpeaking && "animate-pulse"
+                )}>
                   <Bot className="w-5 h-5" />
                 </div>
               </div>
@@ -211,7 +280,7 @@ export function FloatingChat() {
                   >
                     <div
                       className={cn(
-                        "p-3 rounded-2xl text-sm",
+                        "p-3 rounded-2xl text-sm relative group",
                         msg.role === 'user'
                           ? "bg-primary text-primary-foreground rounded-br-sm"
                           : "bg-muted text-foreground rounded-bl-sm"
@@ -219,6 +288,17 @@ export function FloatingChat() {
                     >
                       <p className="whitespace-pre-wrap">{msg.content}</p>
                       {msg.role === 'assistant' && renderToolCalls(msg.toolCalls)}
+                      
+                      {/* Speak button for assistant messages */}
+                      {msg.role === 'assistant' && ttsSupported && (
+                        <button
+                          onClick={() => speakMessage(msg.content)}
+                          className="absolute -bottom-1 -left-1 p-1 bg-background rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="نطق الرسالة"
+                        >
+                          <Volume2 className="w-3 h-3 text-primary" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -236,6 +316,14 @@ export function FloatingChat() {
 
           {/* Input */}
           <div className="p-3 border-t border-border bg-muted/30">
+            {/* Voice Level Indicator */}
+            {isRecording && (
+              <div className="flex items-center justify-center gap-2 mb-2 py-2 bg-destructive/10 rounded-lg">
+                <VoiceLevelIndicator volume={voiceVolume} isRecording={isRecording} />
+                <span className="text-xs text-destructive">جاري التسجيل...</span>
+              </div>
+            )}
+            
             <div className="flex items-center gap-2">
               <Button 
                 size="icon" 
@@ -247,17 +335,23 @@ export function FloatingChat() {
                     : "text-muted-foreground hover:text-primary"
                 )}
                 onClick={handleVoiceInput}
-                disabled={isLoading}
+                disabled={isLoading || isProcessing}
               >
-                {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                {isProcessing ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : isRecording ? (
+                  <MicOff className="w-5 h-5" />
+                ) : (
+                  <Mic className="w-5 h-5" />
+                )}
               </Button>
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={isRecording ? "جاري الاستماع..." : "اكتب طلبك أو سؤالك..."}
+                placeholder={isRecording ? "تحدث الآن..." : "اكتب طلبك أو سؤالك..."}
                 className="flex-1 bg-card border-0 text-right"
-                disabled={isLoading || isRecording}
+                disabled={isLoading}
               />
               <Button 
                 size="icon" 

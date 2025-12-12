@@ -1,31 +1,53 @@
-import { useState, useRef, KeyboardEvent } from 'react';
-import { Send, Mic, Image, X, Loader2, MicOff } from 'lucide-react';
+import { useState, useRef, KeyboardEvent, useEffect } from 'react';
+import { Send, Mic, Image, X, Loader2, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
+import { useTextToSpeech } from '@/hooks/useTextToSpeech';
+import { VoiceLevelIndicator } from '@/components/VoiceLevelIndicator';
+import { toast as sonnerToast } from 'sonner';
 
 interface ChatInputProps {
   onSend: (content: string, type: 'text' | 'voice' | 'image', attachments?: { type: string; url: string; name?: string }[]) => void;
   isLoading: boolean;
   placeholder?: string;
+  lastAssistantMessage?: string;
 }
 
-export function ChatInput({ onSend, isLoading, placeholder = 'اكتب رسالتك هنا...' }: ChatInputProps) {
+export function ChatInput({ onSend, isLoading, placeholder = 'اكتب رسالتك هنا...', lastAssistantMessage }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<{ type: string; url: string; name?: string; file?: File }[]>([]);
+  const [voiceVolume, setVoiceVolume] = useState(0);
+  const [autoSpeak, setAutoSpeak] = useState(true);
+  const lastSpokenRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
-  const { isRecording, isProcessing, startLiveRecognition, stopRecording } = useVoiceInput({
+  const { isRecording, isProcessing, volume, startLiveRecognition, stopRecording } = useVoiceInput({
     onTranscript: (text) => {
-      setMessage(prev => (prev ? prev + ' ' : '') + text);
+      setMessage(text);
     },
+    onVolumeChange: setVoiceVolume,
   });
+
+  const { speak, stop: stopSpeaking, isSpeaking, isSupported: ttsSupported } = useTextToSpeech();
+
+  // Auto-speak new assistant messages
+  useEffect(() => {
+    if (!autoSpeak || !ttsSupported || isLoading || !lastAssistantMessage) return;
+    
+    if (lastAssistantMessage !== lastSpokenRef.current) {
+      lastSpokenRef.current = lastAssistantMessage;
+      setTimeout(() => {
+        speak(lastAssistantMessage);
+      }, 300);
+    }
+  }, [lastAssistantMessage, autoSpeak, ttsSupported, isLoading, speak]);
 
   const handleSend = () => {
     if ((!message.trim() && attachments.length === 0) || isLoading) return;
-
+    stopSpeaking();
     const messageType = attachments.some(a => a.type.startsWith('image/')) ? 'image' : 'text';
     onSend(message, messageType, attachments.length > 0 ? attachments.map(a => ({ type: a.type, url: a.url, name: a.name })) : undefined);
     setMessage('');
@@ -76,12 +98,30 @@ export function ChatInput({ onSend, isLoading, placeholder = 'اكتب رسال�
     if (isRecording || isProcessing) {
       stopRecording();
     } else {
+      stopSpeaking();
+      setMessage('');
       await startLiveRecognition();
     }
   };
 
+  const toggleAutoSpeak = () => {
+    if (isSpeaking) {
+      stopSpeaking();
+    }
+    setAutoSpeak(!autoSpeak);
+    sonnerToast.info(autoSpeak ? 'تم إيقاف النطق التلقائي' : 'تم تفعيل النطق التلقائي');
+  };
+
   return (
     <div className="border-t border-border bg-card/50 backdrop-blur-sm p-4">
+      {/* Voice Level Indicator */}
+      {isRecording && (
+        <div className="flex items-center justify-center gap-3 mb-3 py-3 bg-destructive/10 rounded-xl">
+          <VoiceLevelIndicator volume={voiceVolume} isRecording={isRecording} />
+          <span className="text-sm text-destructive font-medium">🎙️ جاري الاستماع...</span>
+        </div>
+      )}
+
       {/* Attachments Preview */}
       {attachments.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3">
@@ -110,6 +150,23 @@ export function ChatInput({ onSend, isLoading, placeholder = 'اكتب رسال�
       )}
 
       <div className="flex items-end gap-2">
+        {/* Auto-speak toggle */}
+        {ttsSupported && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleAutoSpeak}
+            className={`flex-shrink-0 ${autoSpeak ? 'text-primary' : 'text-muted-foreground'}`}
+            title={autoSpeak ? 'إيقاف النطق التلقائي' : 'تفعيل النطق التلقائي'}
+          >
+            {autoSpeak ? (
+              <Volume2 className="w-5 h-5" />
+            ) : (
+              <VolumeX className="w-5 h-5" />
+            )}
+          </Button>
+        )}
+
         {/* Image Upload */}
         <input
           type="file"
@@ -151,8 +208,8 @@ export function ChatInput({ onSend, isLoading, placeholder = 'اكتب رسال�
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={isRecording ? 'جاري التسجيل...' : placeholder}
-          disabled={isLoading || isRecording}
+          placeholder={isRecording ? 'تحدث الآن...' : placeholder}
+          disabled={isLoading}
           className="min-h-[44px] max-h-32 resize-none"
           rows={1}
         />
@@ -170,6 +227,15 @@ export function ChatInput({ onSend, isLoading, placeholder = 'اكتب رسال�
           )}
         </Button>
       </div>
+
+      {/* Speaking indicator */}
+      {isSpeaking && (
+        <div className="flex items-center justify-center gap-2 mt-2 text-xs text-primary">
+          <Volume2 className="w-4 h-4 animate-pulse" />
+          <span>سَنَد يتحدث...</span>
+          <button onClick={stopSpeaking} className="underline">إيقاف</button>
+        </div>
+      )}
     </div>
   );
 }
