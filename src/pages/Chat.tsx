@@ -96,6 +96,9 @@ export default function Chat() {
             onSend={sendMessage}
             isLoading={isLoading}
             placeholder="اكتب سؤالك أو اطلب خدمة..."
+            lastAssistantMessage={
+              messages.filter(m => m.role === 'assistant').slice(-1)[0]?.content
+            }
           />
         </div>
       </div>
