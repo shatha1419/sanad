@@ -95,22 +95,41 @@ export function ServiceExecutionDialog({
     location: string;
   }>>([]);
 
-  // Get user violations from DEMO_USERS
+  // Get user violations from database
   useEffect(() => {
-    if (user) {
-      // Find user in DEMO_USERS by matching profile
-      const demoUser = Object.values(DEMO_USERS).find(u => {
-        // We need to match by some identifier - check profiles
-        return u.violations && u.violations.length > 0;
-      });
+    const fetchViolations = async () => {
+      if (!user) return;
       
-      // For now, get violations from first user with violations or use default
-      const allViolations = Object.values(DEMO_USERS).flatMap(u => u.violations || []);
-      setUserViolations(allViolations.length > 0 ? allViolations : [
-        { id: 'V001', number: 'MV-2024-001', type: 'تجاوز السرعة المحددة', amount: 150, date: '2024-01-15', location: 'طريق الملك فهد' },
-        { id: 'V002', number: 'MV-2024-002', type: 'قطع إشارة حمراء', amount: 500, date: '2024-02-20', location: 'تقاطع العليا' },
-      ]);
-    }
+      try {
+        const { data: violations, error } = await supabase
+          .from('traffic_violations')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_paid', false);
+        
+        if (error) {
+          console.error('Error fetching violations:', error);
+          return;
+        }
+        
+        if (violations && violations.length > 0) {
+          setUserViolations(violations.map(v => ({
+            id: v.id,
+            number: v.violation_number,
+            type: v.violation_type,
+            amount: Number(v.amount),
+            date: v.violation_date,
+            location: v.location || 'غير محدد'
+          })));
+        } else {
+          setUserViolations([]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch violations:', err);
+      }
+    };
+    
+    fetchViolations();
   }, [user]);
   useEffect(() => {
     const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
