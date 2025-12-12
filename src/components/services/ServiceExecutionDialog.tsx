@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,8 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
   SelectContent,
@@ -38,7 +40,17 @@ import {
   Wallet,
   Smartphone,
   Building2,
+  Mic,
+  MicOff,
+  AlertTriangle,
 } from 'lucide-react';
+
+// Demo violations data
+const demoViolations = [
+  { id: 'V001', number: 'MV-2024-001', type: 'تجاوز السرعة المحددة', amount: 150, date: '2024-01-15', location: 'طريق الملك فهد' },
+  { id: 'V002', number: 'MV-2024-002', type: 'قطع إشارة حمراء', amount: 500, date: '2024-02-20', location: 'تقاطع العليا' },
+  { id: 'V003', number: 'MV-2024-003', type: 'عدم ربط حزام الأمان', amount: 150, date: '2024-03-05', location: 'شارع التحلية' },
+];
 
 interface ServiceExecutionDialogProps {
   service: ServiceItem | null;
@@ -76,13 +88,68 @@ export function ServiceExecutionDialog({
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [selectedPayment, setSelectedPayment] = useState<string>('');
   const [calculatedFees, setCalculatedFees] = useState<number>(0);
+  const [selectedViolation, setSelectedViolation] = useState<string>('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [recognition, setRecognition] = useState<any>(null);
 
-  if (!service) return null;
+  // Initialize speech recognition
+  useEffect(() => {
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognitionAPI) {
+      const recognitionInstance = new SpeechRecognitionAPI();
+      recognitionInstance.lang = 'ar-SA';
+      recognitionInstance.continuous = false;
+      recognitionInstance.interimResults = false;
+      
+      recognitionInstance.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setFormData(prev => ({ ...prev, reason: transcript }));
+        setIsRecording(false);
+        toast.success('تم تسجيل الاعتراض بنجاح');
+      };
+      
+      recognitionInstance.onerror = () => {
+        setIsRecording(false);
+        toast.error('حدث خطأ في التسجيل الصوتي');
+      };
+      
+      recognitionInstance.onend = () => {
+        setIsRecording(false);
+      };
+      
+      setRecognition(recognitionInstance);
+    }
+  }, []);
+
+  const toggleVoiceRecording = () => {
+    if (!recognition) {
+      toast.error('المتصفح لا يدعم التسجيل الصوتي');
+      return;
+    }
+    
+    if (isRecording) {
+      recognition.stop();
+      setIsRecording(false);
+    } else {
+      recognition.start();
+      setIsRecording(true);
+      toast.info('تحدث الآن... قل سبب الاعتراض');
+    }
+  };
 
   // Check if service potentially has fees based on the fees string
   const potentiallyHasFees = service.fees && service.fees !== 'مجاني' && service.fees !== 'بدون رسوم';
 
   const handleNext = async () => {
+    // Validate required fields first
+    const fields = getFormFields();
+    const missingFields = fields.filter(f => f.required && !formData[f.id]);
+    
+    if (missingFields.length > 0) {
+      toast.error(`يرجى تعبئة الحقول المطلوبة: ${missingFields.map(f => f.label).join('، ')}`);
+      return;
+    }
+
     if (currentStep === 'info') {
       if (potentiallyHasFees) {
         // Show payment step first
@@ -162,33 +229,41 @@ export function ServiceExecutionDialog({
     onOpenChange(false);
   };
 
-  const getFormFields = () => {
+  interface FormField {
+    id: string;
+    label: string;
+    type: string;
+    options?: { value: string; label: string }[];
+    required?: boolean;
+  }
+
+  const getFormFields = (): FormField[] => {
     switch (service.agentTool) {
       case 'renew_license':
         return [
-          { id: 'duration_years', label: 'مدة التجديد', type: 'select', options: [{ value: '5', label: '5 سنوات - 200 ريال' }, { value: '10', label: '10 سنوات - 400 ريال' }] },
+          { id: 'duration_years', label: 'مدة التجديد', type: 'select', options: [{ value: '5', label: '5 سنوات - 200 ريال' }, { value: '10', label: '10 سنوات - 400 ريال' }], required: true },
         ];
       case 'renew_passport':
         return [
-          { id: 'duration_years', label: 'مدة الجواز', type: 'select', options: [{ value: '5', label: '5 سنوات - 300 ريال' }, { value: '10', label: '10 سنوات - 600 ريال' }] },
+          { id: 'duration_years', label: 'مدة الجواز', type: 'select', options: [{ value: '5', label: '5 سنوات - 300 ريال' }, { value: '10', label: '10 سنوات - 600 ريال' }], required: true },
         ];
       case 'renew_id':
         return [
-          { id: 'delivery_type', label: 'طريقة الاستلام', type: 'select', options: [{ value: 'mail', label: 'توصيل للعنوان الوطني' }, { value: 'office', label: 'استلام من الفرع' }] },
+          { id: 'delivery_type', label: 'طريقة الاستلام', type: 'select', options: [{ value: 'mail', label: 'توصيل للعنوان الوطني' }, { value: 'office', label: 'استلام من الفرع' }], required: true },
         ];
       case 'exit_reentry_visa':
         return [
-          { id: 'visa_type', label: 'نوع التأشيرة', type: 'select', options: [{ value: 'single', label: 'مفردة - 200 ريال' }, { value: 'multiple', label: 'متعددة - 500 ريال' }] },
-          { id: 'duration_months', label: 'المدة (بالأشهر)', type: 'select', options: [{ value: '2', label: 'شهرين' }, { value: '3', label: '3 أشهر' }, { value: '6', label: '6 أشهر' }] },
+          { id: 'visa_type', label: 'نوع التأشيرة', type: 'select', options: [{ value: 'single', label: 'مفردة - 200 ريال' }, { value: 'multiple', label: 'متعددة - 500 ريال' }], required: true },
+          { id: 'duration_months', label: 'المدة (بالأشهر)', type: 'select', options: [{ value: '2', label: 'شهرين' }, { value: '3', label: '3 أشهر' }, { value: '6', label: '6 أشهر' }], required: true },
         ];
       case 'book_appointment':
         return [
-          { id: 'preferred_date', label: 'التاريخ المفضل', type: 'date' },
+          { id: 'preferred_date', label: 'التاريخ المفضل', type: 'date', required: true },
         ];
       case 'violation_objection':
         return [
-          { id: 'violation_number', label: 'رقم المخالفة', type: 'text', required: true },
-          { id: 'reason', label: 'سبب الاعتراض', type: 'text', required: true },
+          { id: 'violation_number', label: 'رقم المخالفة', type: 'violation_select', required: true },
+          { id: 'reason', label: 'سبب الاعتراض', type: 'voice_text', required: true },
         ];
       case 'register_newborn':
         return [
@@ -328,10 +403,84 @@ export function ServiceExecutionDialog({
                       <h4 className="font-semibold text-right">المعلومات المطلوبة</h4>
                       {formFields.map((field) => (
                         <div key={field.id} className="space-y-2">
-                          <Label htmlFor={field.id} className="text-right block">
+                          <Label htmlFor={field.id} className="text-right block flex items-center gap-1 justify-end">
+                            {field.required && <span className="text-destructive">*</span>}
                             {field.label}
                           </Label>
-                          {field.type === 'select' ? (
+                          
+                          {/* Violation Selection */}
+                          {field.type === 'violation_select' && (
+                            <div className="space-y-3">
+                              <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-3 text-right">
+                                <div className="flex items-center gap-2 justify-end mb-2">
+                                  <span className="font-medium text-amber-700 dark:text-amber-400">المخالفات المسجلة</span>
+                                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                                </div>
+                                <p className="text-xs text-muted-foreground">اختر المخالفة التي تريد الاعتراض عليها</p>
+                              </div>
+                              
+                              <RadioGroup
+                                value={formData[field.id] || ''}
+                                onValueChange={(value) => setFormData((prev) => ({ ...prev, [field.id]: value }))}
+                                className="space-y-2"
+                              >
+                                {demoViolations.map((violation) => (
+                                  <div key={violation.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
+                                    formData[field.id] === violation.number 
+                                      ? 'border-primary bg-primary/5' 
+                                      : 'border-border hover:border-primary/50'
+                                  }`}>
+                                    <RadioGroupItem value={violation.number} id={violation.id} />
+                                    <Label htmlFor={violation.id} className="flex-1 cursor-pointer">
+                                      <div className="flex justify-between items-start">
+                                        <Badge variant="outline" className="text-amber-600">{violation.amount} ريال</Badge>
+                                        <div className="text-right">
+                                          <p className="font-medium text-sm">{violation.type}</p>
+                                          <p className="text-xs text-muted-foreground">{violation.location} - {violation.date}</p>
+                                          <p className="text-xs text-muted-foreground">رقم: {violation.number}</p>
+                                        </div>
+                                      </div>
+                                    </Label>
+                                  </div>
+                                ))}
+                              </RadioGroup>
+                            </div>
+                          )}
+                          
+                          {/* Voice Text Input */}
+                          {field.type === 'voice_text' && (
+                            <div className="space-y-2">
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  variant={isRecording ? "destructive" : "outline"}
+                                  size="icon"
+                                  onClick={toggleVoiceRecording}
+                                  className="shrink-0"
+                                >
+                                  {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                                </Button>
+                                <Textarea
+                                  id={field.id}
+                                  value={formData[field.id] || ''}
+                                  onChange={(e) =>
+                                    setFormData((prev) => ({ ...prev, [field.id]: e.target.value }))
+                                  }
+                                  className="text-right min-h-[80px]"
+                                  placeholder={isRecording ? "جاري التسجيل... تحدث الآن" : "اكتب سبب الاعتراض أو اضغط على الميكروفون للإدخال الصوتي"}
+                                />
+                              </div>
+                              {isRecording && (
+                                <div className="flex items-center gap-2 text-xs text-primary animate-pulse justify-end">
+                                  <span>جاري الاستماع...</span>
+                                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* Regular Select */}
+                          {field.type === 'select' && (
                             <Select
                               value={formData[field.id] || ''}
                               onValueChange={(value) =>
@@ -349,7 +498,10 @@ export function ServiceExecutionDialog({
                                 ))}
                               </SelectContent>
                             </Select>
-                          ) : field.type === 'date' ? (
+                          )}
+                          
+                          {/* Date Input */}
+                          {field.type === 'date' && (
                             <Input
                               id={field.id}
                               type="date"
@@ -359,7 +511,10 @@ export function ServiceExecutionDialog({
                               }
                               className="text-right"
                             />
-                          ) : (
+                          )}
+                          
+                          {/* Text Input */}
+                          {field.type === 'text' && (
                             <Input
                               id={field.id}
                               type="text"
@@ -458,42 +613,39 @@ export function ServiceExecutionDialog({
                   )}
                   <h3 className="text-xl font-bold">
                     {result.status === 'success'
-                      ? 'تم بنجاح!'
+                      ? 'تم بنجاح! ✅'
                       : result.status === 'error'
                       ? 'حدث خطأ'
                       : 'قيد المعالجة'}
                   </h3>
                 </div>
-                <p className="text-sm text-center mb-4">{result.message}</p>
-
-                {result.data && Object.keys(result.data).length > 0 && (
-                  <div className="space-y-2 pt-4 border-t">
-                    {Object.entries(result.data).map(([key, value]) => {
-                      // Skip arrays and complex objects for now
-                      if (typeof value === 'object' && value !== null) {
-                        if (Array.isArray(value)) {
-                          return (
-                            <div key={key} className="text-sm text-right">
-                              <span className="text-muted-foreground block mb-1">{key.replace(/_/g, ' ')}:</span>
-                              <ul className="list-disc list-inside">
-                                {value.map((item, idx) => (
-                                  <li key={idx}>{String(item)}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          );
+                
+                {/* Formatted result message */}
+                <div className="text-center space-y-3">
+                  <p className="text-base font-medium">{result.message}</p>
+                  
+                  {result.data && Object.keys(result.data).length > 0 && (
+                    <div className="bg-white/50 dark:bg-black/20 rounded-lg p-4 mt-4 text-right space-y-2">
+                      {Object.entries(result.data).map(([key, value]) => {
+                        if (typeof value === 'object' && value !== null) {
+                          return null; // Skip complex objects
                         }
-                        return null;
-                      }
-                      return (
-                        <div key={key} className="flex justify-between text-sm items-center">
-                          <Badge variant="secondary" className="font-normal">{String(value)}</Badge>
-                          <span className="text-muted-foreground">{key.replace(/_/g, ' ')}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                        const label = key.replace(/_/g, ' ');
+                        const icon = key.includes('رقم') ? '📄' : 
+                                     key.includes('رسوم') ? '💰' : 
+                                     key.includes('حالة') ? '✅' : 
+                                     key.includes('تاريخ') ? '📅' :
+                                     key.includes('اسم') ? '👤' : '📌';
+                        return (
+                          <div key={key} className="flex items-center justify-between py-1 border-b border-green-100 dark:border-green-900 last:border-0">
+                            <span className="font-semibold">{String(value)}</span>
+                            <span className="text-muted-foreground text-sm">{icon} {label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
 
                 <p className="text-xs text-center text-muted-foreground mt-4">
                   يمكنك متابعة طلبك من صفحة "طلباتي"
