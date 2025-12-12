@@ -8,6 +8,7 @@ import { useChat } from '@/hooks/useChat';
 import { Button } from '@/components/ui/button';
 import { QUICK_SUGGESTIONS } from '@/lib/constants';
 import { Bot, Sparkles } from 'lucide-react';
+import { BackButton } from '@/components/BackButton';
 
 export default function Chat() {
   const location = useLocation();
@@ -36,6 +37,11 @@ export default function Chat() {
   return (
     <Layout>
       <div className="flex flex-col h-[calc(100vh-4rem)] md:h-[calc(100vh-4rem)]">
+        {/* Back Button */}
+        <div className="container mx-auto max-w-3xl px-4 pt-4">
+          <BackButton />
+        </div>
+        
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto">
           <div className="container mx-auto max-w-3xl px-4 py-6 space-y-4">

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { BackButton } from '@/components/BackButton';
 import { 
   User, Users, Briefcase, AlertTriangle, Plane, 
   Car, CreditCard, FileText, ChevronLeft, MapPin
@@ -188,6 +189,11 @@ export default function Profile() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
+        {/* Back Button */}
+        <div className="mb-6">
+          <BackButton />
+        </div>
+
         {/* Personal Info Card */}
         <Card className="mb-8 bg-gradient-to-l from-primary/5 to-transparent border-primary/20">
           <CardHeader>

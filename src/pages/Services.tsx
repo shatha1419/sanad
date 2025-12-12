@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { useAgentAction } from '@/hooks/useAgentAction';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { BackButton } from '@/components/BackButton';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Car,
@@ -88,10 +89,15 @@ export default function Services() {
   return (
     <Layout>
       <div className="p-4 pb-24">
-        <h1 className="text-2xl font-bold text-foreground mb-2">الخدمات</h1>
-        <p className="text-muted-foreground text-sm mb-6">
-          اختر الخدمة - الخدمات المميزة بـ "تنفيذ مباشر" تنفذ فوراً
-        </p>
+        <div className="flex items-center gap-3 mb-4">
+          <BackButton />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">الخدمات</h1>
+            <p className="text-muted-foreground text-sm">
+              اختر الخدمة - الخدمات المميزة بـ "تنفيذ مباشر" تنفذ فوراً
+            </p>
+          </div>
+        </div>
 
         <div className="space-y-4">
           {categories.map((category) => {
