@@ -241,27 +241,27 @@ ${textToSend}`;
                     <p className="text-sm whitespace-pre-wrap leading-relaxed text-right">{message.content}</p>
                   </div>
                   
-                  {/* Tool calls results */}
+                  {/* Tool calls results - simplified, no JSON display */}
                   {message.toolCalls && message.toolCalls.length > 0 && (
                     <div className="mt-3 space-y-2">
-                      {message.toolCalls.map((tc, idx) => (
-                        <div key={idx} className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl p-4 text-right">
-                          <div className="flex items-center gap-2 justify-end mb-3">
-                            <span className="text-sm font-semibold text-green-700 dark:text-green-400">تم تنفيذ الخدمة بنجاح</span>
-                            <CheckCircle className="w-5 h-5 text-green-600" />
-                          </div>
-                          {tc.result && typeof tc.result === 'object' && 'data' in (tc.result as object) && (
-                            <div className="text-sm space-y-2 bg-white/50 dark:bg-black/20 rounded-lg p-3">
-                              {Object.entries((tc.result as { data: Record<string, unknown> }).data || {}).map(([key, value]) => (
-                                <div key={key} className="flex justify-between items-center border-b border-green-100 dark:border-green-900 pb-1 last:border-0 last:pb-0">
-                                  <span className="font-medium text-green-800 dark:text-green-300">{String(value)}</span>
-                                  <span className="text-green-600 dark:text-green-500 text-xs">{key.replace(/_/g, ' ')}</span>
-                                </div>
-                              ))}
+                      {message.toolCalls.map((tc, idx) => {
+                        const result = tc.result as { status?: string; message?: string } | undefined;
+                        const isSuccess = result?.status === 'success';
+                        return (
+                          <div key={idx} className={`rounded-xl p-3 text-right ${
+                            isSuccess 
+                              ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800' 
+                              : 'bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800'
+                          }`}>
+                            <div className="flex items-center gap-2 justify-end">
+                              <span className={`text-sm font-semibold ${isSuccess ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                                {isSuccess ? 'تم تنفيذ الخدمة بنجاح ✅' : 'جاري المعالجة...'}
+                              </span>
+                              <CheckCircle className={`w-4 h-4 ${isSuccess ? 'text-green-600' : 'text-amber-600'}`} />
                             </div>
-                          )}
-                        </div>
-                      ))}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
