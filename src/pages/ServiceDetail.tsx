@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useAgentAction } from '@/hooks/useAgentAction';
 import { toast } from 'sonner';
 import { ServiceExecutionForm } from '@/components/services/ServiceExecutionForm';
+import { AgentExecutionDialog } from '@/components/services/AgentExecutionDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { addServiceAppointment } from '@/components/AppointmentCalendar';
 import { addDays } from 'date-fns';
@@ -44,6 +45,7 @@ export default function ServiceDetail() {
   const { executeAction, loading: isExecuting } = useAgentAction();
   const [showSuccess, setShowSuccess] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showAgentDialog, setShowAgentDialog] = useState(false);
   const [resultData, setResultData] = useState<unknown>(null);
   const [executionMode, setExecutionMode] = useState<'auto' | 'agent' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -175,17 +177,7 @@ export default function ServiceDetail() {
 
   const handleExecuteWithAgent = () => {
     setExecutionMode('agent');
-    // Open chat with service context
-    const event = new CustomEvent('openChatWithContext', {
-      detail: {
-        service: service?.name,
-        serviceId: serviceId,
-        category: category?.name,
-        message: `أريد المساعدة في خدمة: ${service?.name}`
-      }
-    });
-    window.dispatchEvent(event);
-    toast.info('تم فتح المحادثة مع المساعد سَنَد');
+    setShowAgentDialog(true);
   };
 
   if (showSuccess) {
@@ -378,6 +370,14 @@ export default function ServiceDetail() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Agent Execution Dialog */}
+        <AgentExecutionDialog
+          service={service}
+          category={categoryId || ''}
+          open={showAgentDialog}
+          onOpenChange={setShowAgentDialog}
+        />
       </div>
     </Layout>
   );

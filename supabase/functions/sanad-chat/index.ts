@@ -615,12 +615,15 @@ serve(async (req) => {
       
       // Save to service_requests if userId provided
       if (userId && result.status !== 'error') {
+        const serviceName = body.serviceName || tool;
+        const serviceCategory = body.serviceCategory || 'direct';
+        
         await supabaseClient.from('service_requests').insert({
           user_id: userId,
-          service_type: tool,
-          service_category: 'direct',
+          service_type: serviceName,
+          service_category: serviceCategory,
           status: result.status === 'success' ? 'completed' : 'pending',
-          request_data: { tool, args, execution_type: 'agent' },
+          request_data: { tool, args, execution_type: 'direct', payment_method: args?.payment_method || null },
           result_data: result.data || null
         });
       }

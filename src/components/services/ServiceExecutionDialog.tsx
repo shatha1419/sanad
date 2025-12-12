@@ -120,35 +120,19 @@ export function ServiceExecutionDialog({
       // Simulate processing time for better UX
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Execute service via edge function
+      // Execute service via edge function - it handles saving to service_requests
       const { data, error } = await supabase.functions.invoke('sanad-chat', {
         body: {
           action: 'execute_tool',
           tool: service.agentTool,
           args: { ...formData, payment_method: selectedPayment },
           userId: user.id,
+          serviceName: service.name,
+          serviceCategory: category,
         },
       });
 
       if (error) throw error;
-
-      // Save to service_requests
-      const { error: saveError } = await supabase.from('service_requests').insert({
-        user_id: user.id,
-        service_type: service.name,
-        service_category: category,
-        status: data.status === 'success' ? 'completed' : 'pending',
-        request_data: { 
-          ...formData, 
-          execution_type: 'direct',
-          payment_method: selectedPayment || null,
-        },
-        result_data: data.data || null,
-      });
-
-      if (saveError) {
-        console.error('Error saving request:', saveError);
-      }
 
       setResult(data);
       setCurrentStep('result');
