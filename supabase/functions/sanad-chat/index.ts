@@ -609,6 +609,53 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
     
+    // Map tool names to valid categories
+    const getValidCategory = (tool: string, providedCategory?: string): string => {
+      // Valid categories from database constraint
+      const validCategories = ['passports', 'traffic', 'civil_affairs', 'visas'];
+      
+      // If provided category is valid, use it
+      if (providedCategory && validCategories.includes(providedCategory)) {
+        return providedCategory;
+      }
+      
+      // Map tool names to categories
+      const toolCategoryMap: Record<string, string> = {
+        // Traffic
+        'check_fines': 'traffic',
+        'pay_fine': 'traffic',
+        'renew_license': 'traffic',
+        'issue_license': 'traffic',
+        'renew_vehicle_registration': 'traffic',
+        'transfer_vehicle_ownership': 'traffic',
+        'violation_objection': 'traffic',
+        'add_vehicle_user': 'traffic',
+        'remove_vehicle_user': 'traffic',
+        // Civil Affairs
+        'renew_id': 'civil_affairs',
+        'issue_new_id': 'civil_affairs',
+        'issue_family_record': 'civil_affairs',
+        'register_newborn': 'civil_affairs',
+        'update_qualification': 'civil_affairs',
+        'update_english_name': 'civil_affairs',
+        'update_profession': 'civil_affairs',
+        'correct_marital_status': 'civil_affairs',
+        'add_dependent': 'civil_affairs',
+        // Passports
+        'renew_passport': 'passports',
+        'issue_passport': 'passports',
+        'renew_iqama': 'passports',
+        'exit_reentry_visa': 'passports',
+        'final_exit_visa': 'passports',
+        'transfer_sponsorship': 'passports',
+        'issue_work_visa': 'passports',
+        'book_appointment': 'civil_affairs', // Default to civil_affairs
+        'search_knowledge': 'civil_affairs',
+      };
+      
+      return toolCategoryMap[tool] || 'civil_affairs';
+    };
+
     // Handle direct tool execution
     if (action === 'execute_tool' && tool) {
       const result = await executeTool(tool, args || {}, supabaseClient, userId);
@@ -616,7 +663,7 @@ serve(async (req) => {
       // Save to service_requests if userId provided
       if (userId) {
         const serviceName = body.serviceName || tool;
-        const serviceCategory = body.serviceCategory || 'direct';
+        const serviceCategory = getValidCategory(tool, body.serviceCategory);
         
         console.log('Saving service request:', { userId, serviceName, serviceCategory, status: result.status });
         
@@ -657,39 +704,52 @@ serve(async (req) => {
     ).join('\n');
 
     // Build system prompt with RAG + Agent capabilities
-    const systemPrompt = `أنت "سَنَد"، مساعد ذكي للخدمات الحكومية السعودية. لديك قدرتان رئيسيتان:
+    const systemPrompt = `أنت "سَنَد"، مساعد ذكي للخدمات الحكومية السعودية عبر منصة أبشر. لديك قدرتان رئيسيتان:
 
-## 1. الإجابة على الأسئلة (RAG)
-عند سؤال المستخدم عن معلومات أو استفسارات، استخدم المعرفة التالية:
+## 1. الإجابة على الأسئلة والاستفسارات (نظام RAG)
+لديك معرفة شاملة عن الخدمات الحكومية التالية:
 
 ${servicesContext}
 
-## 2. تنفيذ الخدمات (Agent)
-عند طلب المستخدم تنفيذ خدمة، استخدم الأداة المناسبة:
-- check_fines: للاستعلام عن المخالفات المرورية
-- pay_fine: لدفع مخالفة
-- renew_license: لتجديد رخصة القيادة
-- issue_license: لإصدار رخصة قيادة
-- renew_vehicle_registration: لتجديد استمارة المركبة
-- transfer_vehicle_ownership: لنقل ملكية مركبة
-- violation_objection: للاعتراض على مخالفة
-- book_appointment: لحجز موعد
-- renew_passport: لتجديد الجواز
-- issue_passport: لإصدار جواز جديد
-- renew_id: لتجديد الهوية الوطنية
-- issue_new_id: لإصدار هوية جديدة
-- renew_iqama: لتجديد الإقامة
-- exit_reentry_visa: لتأشيرة خروج وعودة
-- final_exit_visa: لتأشيرة خروج نهائي
-- search_knowledge: للبحث عن معلومات إضافية
+### أمثلة على الاستفسارات:
+- "كم رسوم تجديد الجواز؟" → أجب: 300 ريال (5 سنوات) أو 600 ريال (10 سنوات)
+- "ما شروط تجديد الرخصة؟" → أجب بالشروط من المعرفة
+- "وين أقدر أجدد الهوية؟" → اشرح طريقة الوصول للخدمة
+- "هل يحتاج فحص طبي؟" → أجب حسب الخدمة
 
-## تعليمات مهمة:
-- حدد نوع الطلب: استفسار أو تنفيذ خدمة
-- للاستفسارات: أجب من المعرفة المتاحة مباشرة
-- للتنفيذ: استخدم الأداة المناسبة
-- تحدث بالعربية الفصحى بأسلوب ودود
-- اسأل عن التفاصيل الناقصة قبل التنفيذ
-- أكد نجاح العملية مع رقم المرجع`;
+## 2. تنفيذ الخدمات (نظام Agent)
+عندما يطلب المستخدم تنفيذ خدمة (مثل: "جدد لي الرخصة"، "سجلني"، "نفذ الخدمة")، استخدم الأدوات:
+
+### خدمات المرور:
+- check_fines: استعلام المخالفات | pay_fine: دفع مخالفة
+- renew_license: تجديد رخصة القيادة | issue_license: إصدار رخصة
+- renew_vehicle_registration: تجديد استمارة | transfer_vehicle_ownership: نقل ملكية
+- violation_objection: اعتراض على مخالفة
+
+### خدمات الأحوال المدنية:
+- renew_id: تجديد الهوية | issue_new_id: إصدار هوية جديدة
+- issue_family_record: سجل الأسرة | register_newborn: تسجيل مولود
+
+### خدمات الجوازات:
+- renew_passport: تجديد الجواز | issue_passport: إصدار جواز
+- renew_iqama: تجديد إقامة | exit_reentry_visa: خروج وعودة | final_exit_visa: خروج نهائي
+
+### أخرى:
+- book_appointment: حجز موعد | search_knowledge: بحث إضافي
+
+## تعليمات مهمة جداً:
+1. **فرّق بين الاستفسار والتنفيذ**:
+   - استفسار = سؤال عن معلومات (أجب مباشرة من المعرفة)
+   - تنفيذ = طلب إجراء خدمة (استخدم الأداة المناسبة)
+   
+2. **للاستفسارات**: أجب بشكل مباشر وواضح من المعرفة المتاحة أعلاه. لا تستخدم أي أداة.
+
+3. **للتنفيذ**: 
+   - إذا قال "جدد" أو "سجل" أو "نفذ" → استخدم الأداة
+   - أكد نجاح العملية مع رقم الطلب والتفاصيل
+
+4. **اللغة**: تحدث بالعربية بأسلوب ودود ومختصر
+5. **الدقة**: أعطِ معلومات صحيحة عن الرسوم والشروط`;
 
     const aiMessages = [
       { role: "system", content: systemPrompt },
@@ -760,12 +820,13 @@ ${servicesContext}
         
         // Save to service_requests
         if (userId && toolName !== 'search_knowledge') {
-          console.log('Saving chat service request:', { userId, toolName });
+          const serviceCategory = getValidCategory(toolName);
+          console.log('Saving chat service request:', { userId, toolName, serviceCategory });
           
           const { error: insertError } = await supabaseClient.from('service_requests').insert({
             user_id: userId,
             service_type: toolName,
-            service_category: 'chat',
+            service_category: serviceCategory,
             status: result.status === 'success' ? 'completed' : 'pending',
             request_data: { tool: toolName, args: toolArgs, execution_type: 'agent' },
             result_data: result.data || null
