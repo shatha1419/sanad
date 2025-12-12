@@ -78,7 +78,11 @@ export default function Services() {
     } else if (service.actionType === 'direct' && service.agentTool) {
       setCurrentService(service.name);
       setDialogOpen(true);
-      await executeAction(service.agentTool, { serviceId: service.id, categoryId });
+      await executeAction(
+        service.agentTool, 
+        {}, 
+        { serviceName: service.name, serviceCategory: categoryId }
+      );
     } else if (service.actionType === 'view' && service.subServices) {
       setExpandedSubService(expandedSubService === service.id ? null : service.id);
     }

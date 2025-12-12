@@ -187,8 +187,34 @@ export function ServiceExecutionDialog({
         ];
       case 'violation_objection':
         return [
-          { id: 'violation_number', label: 'رقم المخالفة', type: 'text' },
-          { id: 'reason', label: 'سبب الاعتراض', type: 'text' },
+          { id: 'violation_number', label: 'رقم المخالفة', type: 'text', required: true },
+          { id: 'reason', label: 'سبب الاعتراض', type: 'text', required: true },
+        ];
+      case 'register_newborn':
+        return [
+          { id: 'baby_name', label: 'اسم المولود (رباعي)', type: 'text', required: true },
+          { id: 'baby_gender', label: 'الجنس', type: 'select', options: [{ value: 'male', label: 'ذكر' }, { value: 'female', label: 'أنثى' }], required: true },
+          { id: 'birth_date', label: 'تاريخ الميلاد', type: 'date', required: true },
+          { id: 'birth_place', label: 'مكان الولادة', type: 'text', required: true },
+          { id: 'hospital_name', label: 'اسم المستشفى', type: 'text', required: true },
+        ];
+      case 'transfer_vehicle_ownership':
+        return [
+          { id: 'buyer_id', label: 'رقم هوية المشتري', type: 'text', required: true },
+          { id: 'plate_number', label: 'رقم لوحة المركبة', type: 'text', required: true },
+          { id: 'sale_price', label: 'مبلغ البيع (ريال)', type: 'text' },
+        ];
+      case 'update_qualification':
+        return [
+          { id: 'qualification', label: 'المؤهل الجديد', type: 'select', options: [
+            { value: 'phd', label: 'دكتوراه' },
+            { value: 'masters', label: 'ماجستير' },
+            { value: 'bachelors', label: 'بكالوريوس' },
+            { value: 'diploma', label: 'دبلوم' },
+            { value: 'highschool', label: 'ثانوية' },
+          ], required: true },
+          { id: 'institution', label: 'الجهة المانحة', type: 'text', required: true },
+          { id: 'graduation_year', label: 'سنة التخرج', type: 'text' },
         ];
       default:
         return [];
