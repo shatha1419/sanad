@@ -28,12 +28,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import {
   Loader2,
-  CheckCircle,
-  AlertCircle,
-  FileText,
-  Clock,
   CreditCard,
-  Users,
   Info,
   ArrowRight,
   ArrowLeft,
@@ -47,7 +42,11 @@ import {
   Image,
   X,
   File,
+  CheckCircle,
+  FileText,
+  Users,
 } from 'lucide-react';
+import { ServiceResultDisplay, ServiceExecutingDisplay } from './ServiceResultDisplay';
 
 import { DEMO_USERS } from '@/lib/constants';
 
@@ -876,81 +875,12 @@ export function ServiceExecutionDialog({
 
             {/* Step 3: Executing */}
             {currentStep === 'executing' && (
-              <div className="py-12 text-center">
-                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Loader2 className="w-10 h-10 text-primary animate-spin" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">جاري تنفيذ الخدمة...</h3>
-                <p className="text-muted-foreground text-sm">
-                  يرجى الانتظار، قد تستغرق العملية بضع ثوانٍ
-                </p>
-                {selectedPayment && (
-                  <p className="text-xs text-muted-foreground mt-4">
-                    تم الدفع عبر: {paymentMethods.find(m => m.id === selectedPayment)?.name}
-                  </p>
-                )}
-              </div>
+              <ServiceExecutingDisplay />
             )}
 
             {/* Step 4: Result */}
             {currentStep === 'result' && result && (
-              <div
-                className={`rounded-lg p-6 ${
-                  result.status === 'success'
-                    ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800'
-                    : result.status === 'error'
-                    ? 'bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800'
-                    : 'bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800'
-                }`}
-              >
-                <div className="text-center mb-4">
-                  {result.status === 'success' ? (
-                    <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-3" />
-                  ) : result.status === 'error' ? (
-                    <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-3" />
-                  ) : (
-                    <Clock className="w-16 h-16 text-amber-600 mx-auto mb-3" />
-                  )}
-                  <h3 className="text-xl font-bold">
-                    {result.status === 'success'
-                      ? 'تم بنجاح! ✅'
-                      : result.status === 'error'
-                      ? 'حدث خطأ'
-                      : 'قيد المعالجة'}
-                  </h3>
-                </div>
-                
-                {/* Formatted result message */}
-                <div className="text-center space-y-3">
-                  <p className="text-base font-medium">{result.message}</p>
-                  
-                  {result.data && Object.keys(result.data).length > 0 && (
-                    <div className="bg-white/50 dark:bg-black/20 rounded-lg p-4 mt-4 text-right space-y-2">
-                      {Object.entries(result.data).map(([key, value]) => {
-                        if (typeof value === 'object' && value !== null) {
-                          return null; // Skip complex objects
-                        }
-                        const label = key.replace(/_/g, ' ');
-                        const icon = key.includes('رقم') ? '📄' : 
-                                     key.includes('رسوم') ? '💰' : 
-                                     key.includes('حالة') ? '✅' : 
-                                     key.includes('تاريخ') ? '📅' :
-                                     key.includes('اسم') ? '👤' : '📌';
-                        return (
-                          <div key={key} className="flex items-center justify-between py-1 border-b border-green-100 dark:border-green-900 last:border-0">
-                            <span className="font-semibold">{String(value)}</span>
-                            <span className="text-muted-foreground text-sm">{icon} {label}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <p className="text-xs text-center text-muted-foreground mt-4">
-                  يمكنك متابعة طلبك من صفحة "طلباتي"
-                </p>
-              </div>
+              <ServiceResultDisplay result={result} serviceName={service.name} />
             )}
           </div>
         </ScrollArea>
