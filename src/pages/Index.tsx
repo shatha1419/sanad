@@ -268,11 +268,12 @@ export default function Index() {
               className="cursor-pointer hover:shadow-sanad transition-all duration-200 bg-card border-border"
             >
               <CardContent className="p-5 flex flex-col items-center">
-                <div className="mb-3 w-20 h-20 rounded-lg overflow-hidden">
-                  <img src={sanadLogo} alt="سند" className="w-full h-full object-cover" />
+                <div className="mb-3 w-12 h-12 flex items-center justify-center">
+                  <img src={sanadLogo} alt="سند" className="w-full h-full object-contain" />
                 </div>
                 <div className="w-full h-px bg-border mb-3"></div>
                 <h3 className="text-base font-semibold text-foreground">سند</h3>
+                <p className="text-xs text-muted-foreground mt-1 text-center">المساعد الحكومي مع منصة أبشر</p>
               </CardContent>
             </Card>
           </div>
