@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import absherLogo from '@/assets/absher-logo.png';
 import moi2030Logo from '@/assets/moi-2030-logo.png';
-import sanadLogo from '@/assets/sanad-logo-new.jpeg';
+import sanadLogo from '@/assets/sanad-new-logo.jpeg';
 import { Sidebar } from '@/components/Sidebar';
 import { AppointmentCalendar } from '@/components/AppointmentCalendar';
 
