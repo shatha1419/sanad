@@ -315,7 +315,33 @@ export const DEMO_USERS: Record<string, {
   maritalStatus: string;
   nationalIdExpiry: string;
   phone: string;
+  violations?: Array<{
+    id: string;
+    number: string;
+    type: string;
+    amount: number;
+    date: string;
+    location: string;
+  }>;
 }> = {
+  '1111111111': {
+    nationalId: '1111111111',
+    fullName: 'عبدالله محمد العتيبي',
+    birthDateGregorian: '1995-05-20',
+    birthDateHijri: '1415/12/20',
+    nationality: 'العربية السعودية',
+    city: 'الرياض',
+    occupation: 'موظف حكومي',
+    maritalStatus: 'متزوج',
+    nationalIdExpiry: '1450/01/15',
+    phone: '0551111111',
+    violations: [
+      { id: 'V001', number: 'MV-2024-001', type: 'تجاوز السرعة المحددة', amount: 150, date: '2024-01-15', location: 'طريق الملك فهد' },
+      { id: 'V002', number: 'MV-2024-002', type: 'قطع إشارة حمراء', amount: 500, date: '2024-02-20', location: 'تقاطع العليا' },
+      { id: 'V003', number: 'MV-2024-003', type: 'عدم ربط حزام الأمان', amount: 150, date: '2024-03-05', location: 'شارع التحلية' },
+      { id: 'V004', number: 'MV-2024-004', type: 'الوقوف الخاطئ', amount: 100, date: '2024-04-10', location: 'شارع الأمير سلطان' },
+    ],
+  },
   '1100000001': {
     nationalId: '1100000001',
     fullName: 'محمد سعد بن محمد الدوسري',
@@ -327,6 +353,9 @@ export const DEMO_USERS: Record<string, {
     maritalStatus: 'أعزب',
     nationalIdExpiry: '1449/05/24',
     phone: '0500000001',
+    violations: [
+      { id: 'V005', number: 'MV-2024-005', type: 'تجاوز السرعة بـ 30 كم/س', amount: 300, date: '2024-05-01', location: 'طريق الملك عبدالله' },
+    ],
   },
   '1100000002': {
     nationalId: '1100000002',
@@ -339,5 +368,6 @@ export const DEMO_USERS: Record<string, {
     maritalStatus: 'متزوج',
     nationalIdExpiry: '1448/02/10',
     phone: '0500000002',
+    violations: [],
   },
 };

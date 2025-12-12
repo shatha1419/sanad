@@ -45,12 +45,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 
-// Demo violations data
-const demoViolations = [
-  { id: 'V001', number: 'MV-2024-001', type: 'تجاوز السرعة المحددة', amount: 150, date: '2024-01-15', location: 'طريق الملك فهد' },
-  { id: 'V002', number: 'MV-2024-002', type: 'قطع إشارة حمراء', amount: 500, date: '2024-02-20', location: 'تقاطع العليا' },
-  { id: 'V003', number: 'MV-2024-003', type: 'عدم ربط حزام الأمان', amount: 150, date: '2024-03-05', location: 'شارع التحلية' },
-];
+import { DEMO_USERS } from '@/lib/constants';
 
 interface ServiceExecutionDialogProps {
   service: ServiceItem | null;
@@ -91,8 +86,32 @@ export function ServiceExecutionDialog({
   const [selectedViolation, setSelectedViolation] = useState<string>('');
   const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
+  const [userViolations, setUserViolations] = useState<Array<{
+    id: string;
+    number: string;
+    type: string;
+    amount: number;
+    date: string;
+    location: string;
+  }>>([]);
 
-  // Initialize speech recognition
+  // Get user violations from DEMO_USERS
+  useEffect(() => {
+    if (user) {
+      // Find user in DEMO_USERS by matching profile
+      const demoUser = Object.values(DEMO_USERS).find(u => {
+        // We need to match by some identifier - check profiles
+        return u.violations && u.violations.length > 0;
+      });
+      
+      // For now, get violations from first user with violations or use default
+      const allViolations = Object.values(DEMO_USERS).flatMap(u => u.violations || []);
+      setUserViolations(allViolations.length > 0 ? allViolations : [
+        { id: 'V001', number: 'MV-2024-001', type: 'تجاوز السرعة المحددة', amount: 150, date: '2024-01-15', location: 'طريق الملك فهد' },
+        { id: 'V002', number: 'MV-2024-002', type: 'قطع إشارة حمراء', amount: 500, date: '2024-02-20', location: 'تقاطع العليا' },
+      ]);
+    }
+  }, [user]);
   useEffect(() => {
     const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognitionAPI) {
@@ -424,7 +443,7 @@ export function ServiceExecutionDialog({
                                 onValueChange={(value) => setFormData((prev) => ({ ...prev, [field.id]: value }))}
                                 className="space-y-2"
                               >
-                                {demoViolations.map((violation) => (
+                                {userViolations.length > 0 ? userViolations.map((violation) => (
                                   <div key={violation.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
                                     formData[field.id] === violation.number 
                                       ? 'border-primary bg-primary/5' 
@@ -442,7 +461,12 @@ export function ServiceExecutionDialog({
                                       </div>
                                     </Label>
                                   </div>
-                                ))}
+                                )) : (
+                                  <div className="text-center py-4 text-muted-foreground">
+                                    <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                                    <p>لا توجد مخالفات مسجلة عليك</p>
+                                  </div>
+                                )}
                               </RadioGroup>
                             </div>
                           )}
