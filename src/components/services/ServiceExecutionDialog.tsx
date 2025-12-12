@@ -43,6 +43,10 @@ import {
   Mic,
   MicOff,
   AlertTriangle,
+  Upload,
+  Image,
+  X,
+  File,
 } from 'lucide-react';
 
 import { DEMO_USERS } from '@/lib/constants';
@@ -81,6 +85,8 @@ export function ServiceExecutionDialog({
   const [isExecuting, setIsExecuting] = useState(false);
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, File | null>>({});
+  const [filePreviews, setFilePreviews] = useState<Record<string, string>>({});
   const [selectedPayment, setSelectedPayment] = useState<string>('');
   const [calculatedFees, setCalculatedFees] = useState<number>(0);
   const [selectedViolation, setSelectedViolation] = useState<string>('');
@@ -273,7 +279,43 @@ export function ServiceExecutionDialog({
     type: string;
     options?: { value: string; label: string }[];
     required?: boolean;
+    accept?: string;
+    hint?: string;
   }
+
+  const handleFileUpload = (fieldId: string, file: File | null) => {
+    setUploadedFiles(prev => ({ ...prev, [fieldId]: file }));
+    
+    // Create preview for images
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFilePreviews(prev => ({ ...prev, [fieldId]: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    } else if (file) {
+      setFilePreviews(prev => ({ ...prev, [fieldId]: file.name }));
+    } else {
+      setFilePreviews(prev => {
+        const newPreviews = { ...prev };
+        delete newPreviews[fieldId];
+        return newPreviews;
+      });
+    }
+  };
+
+  const removeFile = (fieldId: string) => {
+    setUploadedFiles(prev => {
+      const newFiles = { ...prev };
+      delete newFiles[fieldId];
+      return newFiles;
+    });
+    setFilePreviews(prev => {
+      const newPreviews = { ...prev };
+      delete newPreviews[fieldId];
+      return newPreviews;
+    });
+  };
 
   const getFormFields = (): FormField[] => {
     switch (service.agentTool) {
@@ -291,6 +333,8 @@ export function ServiceExecutionDialog({
             { value: 'heavy', label: 'مركبات ثقيلة - 400 ريال' },
           ], required: true },
           { id: 'training_center', label: 'مركز التدريب', type: 'text', required: true },
+          { id: 'personal_photo', label: 'الصورة الشخصية', type: 'image', accept: 'image/*', required: true, hint: 'صورة بخلفية بيضاء 4x6' },
+          { id: 'medical_report', label: 'التقرير الطبي', type: 'file', accept: '.pdf,.jpg,.png', required: true, hint: 'PDF أو صورة' },
         ];
       case 'renew_vehicle_registration':
         return [
@@ -367,6 +411,7 @@ export function ServiceExecutionDialog({
           { id: 'birth_date', label: 'تاريخ الميلاد', type: 'date', required: true },
           { id: 'birth_place', label: 'مكان الولادة', type: 'text', required: true },
           { id: 'hospital_name', label: 'اسم المستشفى', type: 'text', required: true },
+          { id: 'birth_certificate', label: 'شهادة الميلاد من المستشفى', type: 'file', accept: '.pdf,.jpg,.png', required: true, hint: 'PDF أو صورة' },
         ];
       case 'update_qualification':
         return [
@@ -379,6 +424,7 @@ export function ServiceExecutionDialog({
           ], required: true },
           { id: 'institution', label: 'الجهة المانحة', type: 'text', required: true },
           { id: 'graduation_year', label: 'سنة التخرج', type: 'text' },
+          { id: 'certificate_scan', label: 'صورة الشهادة', type: 'file', accept: '.pdf,.jpg,.png', required: true, hint: 'PDF أو صورة واضحة' },
         ];
       case 'update_english_name':
         return [
@@ -393,6 +439,7 @@ export function ServiceExecutionDialog({
             { value: '5', label: '5 سنوات - 300 ريال' },
             { value: '10', label: '10 سنوات - 600 ريال' },
           ], required: true },
+          { id: 'personal_photo', label: 'الصورة الشخصية', type: 'image', accept: 'image/*', required: true, hint: 'صورة بخلفية بيضاء 4x6' },
         ];
       case 'issue_passport':
         return [
@@ -404,6 +451,8 @@ export function ServiceExecutionDialog({
             { value: 'not_required', label: 'غير مطلوبة - عمري 21+' },
             { value: 'approved', label: 'تم الحصول على الموافقة' },
           ], required: true },
+          { id: 'personal_photo', label: 'الصورة الشخصية', type: 'image', accept: 'image/*', required: true, hint: 'صورة بخلفية بيضاء 4x6' },
+          { id: 'old_passport_scan', label: 'صورة الهوية الوطنية', type: 'file', accept: '.pdf,.jpg,.png', required: true, hint: 'PDF أو صورة واضحة' },
         ];
       case 'renew_iqama':
         return [
@@ -680,6 +729,90 @@ export function ServiceExecutionDialog({
                             />
                           )}
                           
+                          {/* Image Upload */}
+                          {field.type === 'image' && (
+                            <div className="space-y-2">
+                              {filePreviews[field.id] ? (
+                                <div className="relative inline-block">
+                                  <img 
+                                    src={filePreviews[field.id]} 
+                                    alt="معاينة" 
+                                    className="w-32 h-32 object-cover rounded-lg border border-border"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => removeFile(field.id)}
+                                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <label 
+                                  htmlFor={field.id}
+                                  className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary transition-colors bg-muted/30"
+                                >
+                                  <Image className="w-8 h-8 text-muted-foreground mb-2" />
+                                  <span className="text-xs text-muted-foreground">اضغط للرفع</span>
+                                  <input
+                                    id={field.id}
+                                    type="file"
+                                    accept={field.accept}
+                                    className="hidden"
+                                    onChange={(e) => handleFileUpload(field.id, e.target.files?.[0] || null)}
+                                  />
+                                </label>
+                              )}
+                              {field.hint && (
+                                <p className="text-xs text-muted-foreground text-right">{field.hint}</p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* File Upload */}
+                          {field.type === 'file' && (
+                            <div className="space-y-2">
+                              {uploadedFiles[field.id] ? (
+                                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                                  <button
+                                    type="button"
+                                    onClick={() => removeFile(field.id)}
+                                    className="text-destructive hover:text-destructive/80"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                  <div className="flex-1 text-right">
+                                    <p className="text-sm font-medium truncate">{uploadedFiles[field.id]?.name}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {(uploadedFiles[field.id]?.size || 0 / 1024).toFixed(1)} KB
+                                    </p>
+                                  </div>
+                                  <File className="w-8 h-8 text-primary" />
+                                </div>
+                              ) : (
+                                <label 
+                                  htmlFor={field.id}
+                                  className="flex items-center gap-3 p-4 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary transition-colors bg-muted/30"
+                                >
+                                  <div className="flex-1 text-right">
+                                    <p className="text-sm font-medium">اضغط لرفع الملف</p>
+                                    {field.hint && (
+                                      <p className="text-xs text-muted-foreground">{field.hint}</p>
+                                    )}
+                                  </div>
+                                  <Upload className="w-6 h-6 text-muted-foreground" />
+                                  <input
+                                    id={field.id}
+                                    type="file"
+                                    accept={field.accept}
+                                    className="hidden"
+                                    onChange={(e) => handleFileUpload(field.id, e.target.files?.[0] || null)}
+                                  />
+                                </label>
+                              )}
+                            </div>
+                          )}
+
                           {/* Text Input */}
                           {field.type === 'text' && (
                             <Input
