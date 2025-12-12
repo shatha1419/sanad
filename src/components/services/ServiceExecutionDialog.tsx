@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ import {
 import { ServiceItem } from '@/lib/constants';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useServiceValidation } from '@/hooks/useServiceValidation';
 import { toast } from 'sonner';
 import {
   Loader2,
@@ -45,6 +47,8 @@ import {
   CheckCircle,
   FileText,
   Users,
+  Car,
+  UserCheck,
 } from 'lucide-react';
 import { ServiceResultDisplay, ServiceExecutingDisplay } from './ServiceResultDisplay';
 
@@ -64,7 +68,7 @@ interface ExecutionResult {
   fees?: number;
 }
 
-type Step = 'info' | 'payment' | 'executing' | 'result';
+type Step = 'validation' | 'info' | 'payment' | 'executing' | 'result';
 
 const paymentMethods = [
   { id: 'visa', name: 'Visa / Mastercard', icon: CreditCard },
@@ -80,7 +84,17 @@ export function ServiceExecutionDialog({
   onOpenChange,
 }: ServiceExecutionDialogProps) {
   const { user } = useAuth();
-  const [currentStep, setCurrentStep] = useState<Step>('info');
+  const navigate = useNavigate();
+  const { 
+    workers, 
+    vehicles, 
+    violations: userViolationsFromHook, 
+    licenses,
+    validateForService,
+    isLoading: validationLoading 
+  } = useServiceValidation();
+  
+  const [currentStep, setCurrentStep] = useState<Step>('validation');
   const [isExecuting, setIsExecuting] = useState(false);
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
@@ -91,6 +105,7 @@ export function ServiceExecutionDialog({
   const [selectedViolation, setSelectedViolation] = useState<string>('');
   const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [userViolations, setUserViolations] = useState<Array<{
     id: string;
     number: string;
@@ -105,25 +120,23 @@ export function ServiceExecutionDialog({
     return null;
   }
 
-  // Get user violations from database
+  // Validate service requirements on open
   useEffect(() => {
-    const fetchViolations = async () => {
-      if (!user) return;
+    const runValidation = async () => {
+      if (!open || !service?.agentTool) return;
       
-      try {
-        const { data: violations, error } = await supabase
-          .from('traffic_violations')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('is_paid', false);
+      setValidationError(null);
+      const result = await validateForService(service.agentTool);
+      
+      if (!result.valid) {
+        setValidationError(result.message || 'فشل التحقق من المتطلبات');
+        setCurrentStep('validation');
+      } else {
+        setCurrentStep('info');
         
-        if (error) {
-          console.error('Error fetching violations:', error);
-          return;
-        }
-        
-        if (violations && violations.length > 0) {
-          setUserViolations(violations.map(v => ({
+        // Set violations if available
+        if (result.data?.violations) {
+          setUserViolations(result.data.violations.map((v: any) => ({
             id: v.id,
             number: v.violation_number,
             type: v.violation_type,
@@ -131,16 +144,12 @@ export function ServiceExecutionDialog({
             date: v.violation_date,
             location: v.location || 'غير محدد'
           })));
-        } else {
-          setUserViolations([]);
         }
-      } catch (err) {
-        console.error('Failed to fetch violations:', err);
       }
     };
     
-    fetchViolations();
-  }, [user]);
+    runValidation();
+  }, [open, service?.agentTool, validateForService]);
   useEffect(() => {
     const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognitionAPI) {
@@ -187,11 +196,18 @@ export function ServiceExecutionDialog({
 
   // Check if service potentially has fees based on the fees string
   const potentiallyHasFees = service.fees && service.fees !== 'مجاني' && service.fees !== 'بدون رسوم';
+  
+  // Extract numeric fee from service fees string
+  const extractFee = (): number => {
+    if (!service.fees) return 0;
+    const match = service.fees.match(/(\d+)/);
+    return match ? parseInt(match[1]) : 0;
+  };
 
   const handleNext = async () => {
     // Validate required fields first
     const fields = getFormFields();
-    const missingFields = fields.filter(f => f.required && !formData[f.id]);
+    const missingFields = fields.filter(f => f.required && !formData[f.id] && !uploadedFiles[f.id]);
     
     if (missingFields.length > 0) {
       toast.error(`يرجى تعبئة الحقول المطلوبة: ${missingFields.map(f => f.label).join('، ')}`);
@@ -200,8 +216,18 @@ export function ServiceExecutionDialog({
 
     if (currentStep === 'info') {
       if (potentiallyHasFees) {
-        // Show payment step first
-        setCurrentStep('payment');
+        // Navigate to full payment page
+        const fee = extractFee();
+        const returnUrl = window.location.pathname;
+        const params = new URLSearchParams({
+          amount: fee.toString(),
+          service: service.name,
+          returnUrl: returnUrl,
+          data: JSON.stringify({ formData, category, agentTool: service.agentTool })
+        });
+        
+        onOpenChange(false);
+        navigate(`/payment?${params.toString()}`);
       } else {
         // Execute directly if no fees
         await handleExecute();
@@ -218,6 +244,8 @@ export function ServiceExecutionDialog({
   const handleBack = () => {
     if (currentStep === 'payment') {
       setCurrentStep('info');
+    } else if (currentStep === 'info' && validationError) {
+      setCurrentStep('validation');
     }
   };
 
@@ -272,8 +300,11 @@ export function ServiceExecutionDialog({
     setResult(null);
     setFormData({});
     setSelectedPayment('');
-    setCurrentStep('info');
+    setCurrentStep('validation');
     setCalculatedFees(0);
+    setValidationError(null);
+    setUploadedFiles({});
+    setFilePreviews({});
     onOpenChange(false);
   };
 
@@ -514,13 +545,15 @@ export function ServiceExecutionDialog({
   const formFields = getFormFields();
 
   const getStepIndicator = () => {
+    if (currentStep === 'validation') return null;
+    
     const steps = potentiallyHasFees 
       ? ['المعلومات', 'الدفع', 'التنفيذ', 'النتيجة']
       : ['المعلومات', 'التنفيذ', 'النتيجة'];
     
-    const stepMapping = potentiallyHasFees
-      ? { info: 0, payment: 1, executing: 2, result: 3 }
-      : { info: 0, executing: 1, result: 2, payment: -1 };
+    const stepMapping: Record<Step, number> = potentiallyHasFees
+      ? { validation: -1, info: 0, payment: 1, executing: 2, result: 3 }
+      : { validation: -1, info: 0, executing: 1, result: 2, payment: -1 };
     
     const currentIndex = stepMapping[currentStep];
 
@@ -563,6 +596,53 @@ export function ServiceExecutionDialog({
 
         <ScrollArea className="max-h-[50vh]">
           <div className="space-y-4 p-1">
+            {/* Step: Validation */}
+            {currentStep === 'validation' && (
+              <div className="space-y-4">
+                {validationLoading ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+                    <p className="text-muted-foreground">جاري التحقق من المتطلبات...</p>
+                  </div>
+                ) : validationError ? (
+                  <div className="text-center py-6">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
+                      <AlertTriangle className="w-8 h-8 text-amber-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">لا يمكن تنفيذ الخدمة</h3>
+                    <p className="text-muted-foreground text-sm mb-4">{validationError}</p>
+                    
+                    {/* Show available data info */}
+                    <div className="bg-muted/50 rounded-lg p-4 text-right space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Badge variant={workers.length > 0 ? 'default' : 'secondary'}>
+                          {workers.length} عامل
+                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">العمالة المسجلة</span>
+                          <UserCheck className="w-4 h-4 text-primary" />
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Badge variant={vehicles.length > 0 ? 'default' : 'secondary'}>
+                          {vehicles.length} مركبة
+                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">المركبات المسجلة</span>
+                          <Car className="w-4 h-4 text-primary" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <CheckCircle className="w-8 h-8 mx-auto mb-4 text-green-500" />
+                    <p className="text-muted-foreground">تم التحقق من المتطلبات</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Step 1: Info */}
             {currentStep === 'info' && (
               <>
@@ -891,6 +971,23 @@ export function ServiceExecutionDialog({
         </ScrollArea>
 
         <DialogFooter className="gap-2 sm:gap-0">
+          {currentStep === 'validation' && (
+            <>
+              <Button variant="outline" onClick={handleClose}>
+                إغلاق
+              </Button>
+              {!validationLoading && !validationError && (
+                <Button
+                  onClick={() => setCurrentStep('info')}
+                  className="gradient-primary text-primary-foreground gap-2"
+                >
+                  متابعة
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              )}
+            </>
+          )}
+
           {currentStep === 'info' && (
             <>
               <Button variant="outline" onClick={handleClose}>
