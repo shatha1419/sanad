@@ -22,7 +22,7 @@ export function FloatingChat() {
   const [serviceContext, setServiceContext] = useState<ServiceContext | null>(null);
   const { messages, isLoading, sendMessage, clearMessages, loadConversation } = useChat();
   
-  const { isRecording, isSupported, startLiveRecognition, stopRecording } = useVoiceInput({
+  const { isRecording, isProcessing, startLiveRecognition, stopRecording } = useVoiceInput({
     onTranscript: (text) => {
       setInput(prev => (prev ? prev + ' ' : '') + text);
     },
@@ -79,12 +79,9 @@ export function FloatingChat() {
   };
 
   const handleVoiceInput = async () => {
-    if (isRecording) {
+    if (isRecording || isProcessing) {
       stopRecording();
     } else {
-      if (!isSupported) {
-        toast.warning('سيتم تسجيل الصوت. للأفضل، افتح التطبيق في متصفح عادي.');
-      }
       await startLiveRecognition();
     }
   };

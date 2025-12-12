@@ -1,8 +1,9 @@
 import { useState, useRef, KeyboardEvent } from 'react';
-import { Send, Mic, Image, X, Loader2 } from 'lucide-react';
+import { Send, Mic, Image, X, Loader2, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useVoiceInput } from '@/hooks/useVoiceInput';
 
 interface ChatInputProps {
   onSend: (content: string, type: 'text' | 'voice' | 'image', attachments?: { type: string; url: string; name?: string }[]) => void;
@@ -13,11 +14,14 @@ interface ChatInputProps {
 export function ChatInput({ onSend, isLoading, placeholder = 'اكتب رسالتك هنا...' }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<{ type: string; url: string; name?: string; file?: File }[]>([]);
-  const [isRecording, setIsRecording] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
   const { toast } = useToast();
+  
+  const { isRecording, isProcessing, startLiveRecognition, stopRecording } = useVoiceInput({
+    onTranscript: (text) => {
+      setMessage(prev => (prev ? prev + ' ' : '') + text);
+    },
+  });
 
   const handleSend = () => {
     if ((!message.trim() && attachments.length === 0) || isLoading) return;
@@ -68,50 +72,11 @@ export function ChatInput({ onSend, isLoading, placeholder = 'اكتب رسال�
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.onload = () => {
-          const base64 = (reader.result as string).split(',')[1];
-          // Send voice message
-          onSend(`[رسالة صوتية]`, 'voice', [{
-            type: 'audio/webm',
-            url: base64,
-            name: 'voice-message.webm',
-          }]);
-        };
-        reader.readAsDataURL(audioBlob);
-        
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-      toast({
-        title: 'خطأ',
-        description: 'لا يمكن الوصول للميكروفون',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
+  const handleVoiceInput = async () => {
+    if (isRecording || isProcessing) {
+      stopRecording();
+    } else {
+      await startLiveRecognition();
     }
   };
 
@@ -168,11 +133,17 @@ export function ChatInput({ onSend, isLoading, placeholder = 'اكتب رسال�
         <Button
           variant={isRecording ? 'destructive' : 'ghost'}
           size="icon"
-          onClick={isRecording ? stopRecording : startRecording}
-          disabled={isLoading}
-          className={`flex-shrink-0 ${isRecording ? 'animate-pulse' : ''}`}
+          onClick={handleVoiceInput}
+          disabled={isLoading || isProcessing}
+          className={`flex-shrink-0 ${isRecording || isProcessing ? 'animate-pulse' : ''}`}
         >
-          <Mic className="w-5 h-5" />
+          {isProcessing ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : isRecording ? (
+            <MicOff className="w-5 h-5" />
+          ) : (
+            <Mic className="w-5 h-5" />
+          )}
         </Button>
 
         {/* Text Input */}
