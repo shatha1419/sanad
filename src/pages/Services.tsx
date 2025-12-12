@@ -2,12 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { SERVICES, ServiceItem } from '@/lib/constants';
-import { Car, IdCard, BookOpen, ChevronLeft, ChevronDown, Loader2, CheckCircle, XCircle, FileText } from 'lucide-react';
+import { Car, IdCard, BookOpen, ChevronLeft, ChevronDown, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAgentAction } from '@/hooks/useAgentAction';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { BackButton } from '@/components/BackButton';
+import { ServiceExecutionDialog } from '@/components/services/ServiceExecutionDialog';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Car,
@@ -15,76 +13,24 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   BookOpen,
 };
 
-interface ActionResultDialogProps {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  result: { status: string; message: string; data?: unknown } | null;
-  loading: boolean;
-}
-
-function ActionResultDialog({ open, onClose, title, result, loading }: ActionResultDialogProps) {
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="text-center">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
-        
-        {loading ? (
-          <div className="py-8 flex flex-col items-center gap-4">
-            <Loader2 className="w-12 h-12 text-primary animate-spin" />
-            <p className="text-muted-foreground">جاري تنفيذ الطلب...</p>
-          </div>
-        ) : result ? (
-          <div className="py-6 flex flex-col items-center gap-4">
-            {result.status === 'success' ? (
-              <CheckCircle className="w-16 h-16 text-green-500" />
-            ) : (
-              <XCircle className="w-16 h-16 text-red-500" />
-            )}
-            <DialogDescription className="text-lg">
-              {result.message}
-            </DialogDescription>
-            {result.data && (
-              <div className="mt-4 p-4 bg-muted rounded-lg text-right w-full">
-                <pre className="text-sm whitespace-pre-wrap">
-                  {JSON.stringify(result.data, null, 2)}
-                </pre>
-              </div>
-            )}
-          </div>
-        ) : null}
-        
-        <Button onClick={onClose} className="mt-4">
-          إغلاق
-        </Button>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 export default function Services() {
   const navigate = useNavigate();
-  const { executeAction, loading: actionLoading, result } = useAgentAction();
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [expandedSubService, setExpandedSubService] = useState<string | null>(null);
+  const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [currentService, setCurrentService] = useState<string>('');
 
-  const handleServiceClick = async (service: ServiceItem, categoryId: string) => {
+  const handleServiceClick = (service: ServiceItem, categoryId: string) => {
     if (service.actionType === 'chat') {
       navigate('/chat', { state: { initialMessage: `أريد ${service.name}` } });
-    } else if (service.actionType === 'direct' && service.agentTool) {
-      setCurrentService(service.name);
-      setDialogOpen(true);
-      await executeAction(
-        service.agentTool, 
-        {}, 
-        { serviceName: service.name, serviceCategory: categoryId }
-      );
     } else if (service.actionType === 'view' && service.subServices) {
       setExpandedSubService(expandedSubService === service.id ? null : service.id);
+    } else {
+      // Open the service execution dialog
+      setSelectedService(service);
+      setSelectedCategory(categoryId);
+      setDialogOpen(true);
     }
   };
 
@@ -93,12 +39,12 @@ export default function Services() {
   return (
     <Layout>
       <div className="p-4 pb-24">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-6">
           <BackButton />
           <div>
             <h1 className="text-2xl font-bold text-foreground">الخدمات</h1>
             <p className="text-muted-foreground text-sm">
-              اختر الخدمة - الخدمات المميزة بـ "تنفيذ مباشر" تنفذ فوراً
+              اختر الخدمة المطلوبة لتنفيذها
             </p>
           </div>
         </div>
@@ -140,8 +86,10 @@ export default function Services() {
                           <div className="text-right flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <h4 className="font-medium text-foreground">{service.name}</h4>
-                              {service.actionType === 'direct' && (
-                                <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">تنفيذ مباشر</span>
+                              {service.fees && service.fees !== 'مجاني' && (
+                                <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
+                                  {service.fees}
+                                </span>
                               )}
                             </div>
                             <p className="text-sm text-muted-foreground truncate">{service.description}</p>
@@ -168,8 +116,10 @@ export default function Services() {
                                 <div className="text-right flex-1 min-w-0">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <h4 className="font-medium text-foreground text-sm">{subService.name}</h4>
-                                    {subService.actionType === 'direct' && (
-                                      <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">تنفيذ</span>
+                                    {subService.fees && subService.fees !== 'مجاني' && (
+                                      <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
+                                        {subService.fees}
+                                      </span>
                                     )}
                                   </div>
                                   <p className="text-xs text-muted-foreground truncate">{subService.description}</p>
@@ -189,12 +139,12 @@ export default function Services() {
         </div>
       </div>
 
-      <ActionResultDialog
+      {/* Service Execution Dialog */}
+      <ServiceExecutionDialog
+        service={selectedService}
+        category={selectedCategory}
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        title={currentService}
-        result={result}
-        loading={actionLoading}
+        onOpenChange={setDialogOpen}
       />
     </Layout>
   );

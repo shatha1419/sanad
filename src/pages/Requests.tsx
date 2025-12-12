@@ -5,6 +5,25 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -19,7 +38,11 @@ import {
   Eye,
   Bot,
   RefreshCw,
-  Bell
+  Bell,
+  Search,
+  Filter,
+  Trash2,
+  X
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -68,6 +91,11 @@ export default function Requests() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
+  
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -144,6 +172,35 @@ export default function Requests() {
     };
   }, [user]);
 
+  // Filtered requests
+  const filteredRequests = requests.filter(request => {
+    const matchesSearch = searchQuery === '' || 
+      request.service_type.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
+    const matchesCategory = categoryFilter === 'all' || request.service_category === categoryFilter;
+    
+    return matchesSearch && matchesStatus && matchesCategory;
+  });
+
+  // Get unique categories from requests
+  const uniqueCategories = [...new Set(requests.map(r => r.service_category))];
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setCategoryFilter('all');
+  };
+
+  const hasActiveFilters = searchQuery !== '' || statusFilter !== 'all' || categoryFilter !== 'all';
+
+  const handleClearAllRequests = async () => {
+    // Note: This would require DELETE permission on service_requests table
+    // For now, we show a message that this feature requires admin access
+    toast.error('هذه الميزة غير متاحة حالياً', {
+      description: 'لا يمكن حذف الطلبات من قاعدة البيانات'
+    });
+  };
+
   const formatDate = (date: string) => {
     return format(new Date(date), 'dd MMMM yyyy - HH:mm', { locale: ar });
   };
@@ -153,6 +210,25 @@ export default function Requests() {
       detail: { conversationId }
     });
     window.dispatchEvent(event);
+  };
+
+  // Format result data nicely
+  const formatResultData = (data: Record<string, unknown>) => {
+    return Object.entries(data).map(([key, value]) => {
+      if (typeof value === 'object' && value !== null) return null;
+      const label = key.replace(/_/g, ' ');
+      const icon = key.includes('رقم') ? '📄' : 
+                   key.includes('رسوم') ? '💰' : 
+                   key.includes('حالة') ? '✅' : 
+                   key.includes('تاريخ') ? '📅' :
+                   key.includes('اسم') ? '👤' : '📌';
+      return (
+        <div key={key} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+          <span className="font-medium text-sm">{String(value)}</span>
+          <span className="text-muted-foreground text-xs">{icon} {label}</span>
+        </div>
+      );
+    }).filter(Boolean);
   };
 
   if (loading) {
@@ -168,20 +244,22 @@ export default function Requests() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 animate-fade-in">
-          <div className="flex items-center gap-4 mb-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/')}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">طلباتي</h1>
-              <p className="text-muted-foreground">
-                تابع حالة طلباتك ومحادثاتك السابقة
-              </p>
+        <div className="mb-6 animate-fade-in">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/')}
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">طلباتي</h1>
+                <p className="text-muted-foreground">
+                  تابع حالة طلباتك ومحادثاتك السابقة
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -199,25 +277,134 @@ export default function Requests() {
           </TabsList>
 
           <TabsContent value="requests">
-            {requests.length === 0 ? (
+            {/* Search and Filters */}
+            <div className="bg-card rounded-xl border border-border p-4 mb-6 space-y-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Filter className="w-4 h-4" />
+                <span>البحث والفلترة</span>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                {/* Search */}
+                <div className="relative md:col-span-2">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="ابحث باسم الخدمة..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pr-10 text-right"
+                  />
+                </div>
+                
+                {/* Status Filter */}
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="text-right">
+                    <SelectValue placeholder="الحالة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">جميع الحالات</SelectItem>
+                    <SelectItem value="pending">قيد الانتظار</SelectItem>
+                    <SelectItem value="processing">قيد المعالجة</SelectItem>
+                    <SelectItem value="completed">مكتمل</SelectItem>
+                    <SelectItem value="cancelled">ملغي</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                {/* Category Filter */}
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="text-right">
+                    <SelectValue placeholder="الفئة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">جميع الفئات</SelectItem>
+                    {uniqueCategories.map(cat => (
+                      <SelectItem key={cat} value={cat}>
+                        {categoryLabels[cat] || cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Active filters and actions */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {hasActiveFilters && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={clearFilters}
+                      className="gap-1 text-muted-foreground"
+                    >
+                      <X className="w-3 h-3" />
+                      مسح الفلاتر
+                    </Button>
+                  )}
+                  <span className="text-sm text-muted-foreground">
+                    عرض {filteredRequests.length} من {requests.length} طلب
+                  </span>
+                </div>
+                
+                {requests.length > 0 && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm" className="gap-2">
+                        <Trash2 className="w-4 h-4" />
+                        مسح الكل
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="text-right">هل أنت متأكد؟</AlertDialogTitle>
+                        <AlertDialogDescription className="text-right">
+                          سيتم حذف جميع الطلبات ({requests.length} طلب). هذا الإجراء لا يمكن التراجع عنه.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter className="gap-2">
+                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={handleClearAllRequests}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          حذف الكل
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+            </div>
+
+            {filteredRequests.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
                   <ClipboardList className="w-16 h-16 mx-auto text-muted-foreground mb-4 opacity-30" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">لا توجد طلبات</h3>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    {requests.length === 0 ? 'لا توجد طلبات' : 'لا توجد نتائج'}
+                  </h3>
                   <p className="text-muted-foreground mb-6">
-                    عندما تطلب خدمة من سَنَد، ستظهر هنا لتتبعها
+                    {requests.length === 0 
+                      ? 'عندما تطلب خدمة من سَنَد، ستظهر هنا لتتبعها'
+                      : 'جرب تغيير معايير البحث أو الفلترة'
+                    }
                   </p>
-                  <Button 
-                    className="gradient-primary text-primary-foreground"
-                    onClick={() => navigate('/services')}
-                  >
-                    تصفح الخدمات
-                  </Button>
+                  {requests.length === 0 ? (
+                    <Button 
+                      className="gradient-primary text-primary-foreground"
+                      onClick={() => navigate('/services')}
+                    >
+                      تصفح الخدمات
+                    </Button>
+                  ) : (
+                    <Button variant="outline" onClick={clearFilters}>
+                      مسح الفلاتر
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ) : (
               <div className="space-y-4">
-                {requests.map((request, idx) => {
+                {filteredRequests.map((request, idx) => {
                   const status = statusConfig[request.status] || statusConfig.pending;
                   const execType = executionTypeLabels[(request.request_data as { execution_type?: string })?.execution_type || 'auto'];
                   
@@ -230,7 +417,7 @@ export default function Requests() {
                     >
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Badge className={`${status.color} gap-1`}>
                               {status.icon}
                               {status.label}
@@ -256,10 +443,10 @@ export default function Requests() {
                         
                         {selectedRequest?.id === request.id && (
                           <div className="mt-4 pt-4 border-t border-border animate-fade-in">
-                            <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                               <div className="text-right">
                                 <span className="text-muted-foreground">رقم الطلب:</span>
-                                <p className="font-medium">#{request.id.slice(0, 8)}</p>
+                                <p className="font-medium font-mono">#{request.id.slice(0, 8)}</p>
                               </div>
                               <div className="text-right">
                                 <span className="text-muted-foreground">آخر تحديث:</span>
@@ -267,26 +454,17 @@ export default function Requests() {
                               </div>
                             </div>
                             
-                            {request.result_data && (
-                              <div className="mt-4 p-3 bg-muted rounded-lg text-right">
-                                <p className="text-sm font-medium mb-2">نتيجة الطلب:</p>
-                                <pre className="text-xs text-muted-foreground overflow-auto">
-                                  {JSON.stringify(request.result_data, null, 2)}
-                                </pre>
+                            {request.result_data && Object.keys(request.result_data).length > 0 && (
+                              <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg text-right border border-green-200 dark:border-green-800">
+                                <p className="text-sm font-semibold mb-3 flex items-center gap-2 justify-end">
+                                  <span>نتيجة الطلب</span>
+                                  <CheckCircle className="w-4 h-4 text-green-600" />
+                                </p>
+                                <div className="space-y-1">
+                                  {formatResultData(request.result_data)}
+                                </div>
                               </div>
                             )}
-                            
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="mt-4 w-full gap-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                              }}
-                            >
-                              <Eye className="w-4 h-4" />
-                              عرض التفاصيل الكاملة
-                            </Button>
                           </div>
                         )}
                       </CardContent>
