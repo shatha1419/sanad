@@ -268,7 +268,7 @@ export default function Index() {
               className="cursor-pointer hover:shadow-sanad transition-all duration-200 bg-card border-border"
             >
               <CardContent className="p-5 flex flex-col items-center">
-                <div className="mb-3 w-12 h-12 rounded-lg overflow-hidden">
+                <div className="mb-3 w-20 h-20 rounded-lg overflow-hidden">
                   <img src={sanadLogo} alt="سند" className="w-full h-full object-cover" />
                 </div>
                 <div className="w-full h-px bg-border mb-3"></div>
