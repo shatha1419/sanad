@@ -172,12 +172,18 @@ const agentTools = [
   {
     type: "function",
     function: {
-      name: "renew_iqama",
-      description: "تجديد إقامة للمقيم",
+      name: "register_newborn",
+      description: "تسجيل مولود جديد في السجلات المدنية",
       parameters: {
         type: "object",
-        properties: { iqama_number: { type: "string", description: "رقم الإقامة" } },
-        required: []
+        properties: { 
+          baby_name: { type: "string", description: "اسم المولود الرباعي" },
+          baby_gender: { type: "string", enum: ["male", "female"], description: "جنس المولود" },
+          birth_date: { type: "string", description: "تاريخ الميلاد" },
+          birth_place: { type: "string", description: "مكان الولادة" },
+          hospital_name: { type: "string", description: "اسم المستشفى" }
+        },
+        required: ["baby_name", "baby_gender", "birth_date"]
       }
     }
   },
@@ -449,11 +455,29 @@ async function executeTool(toolName: string, args: Record<string, unknown>, supa
     }
 
     case "register_newborn": {
+      const babyName = args.baby_name || "غير محدد";
+      const babyGender = args.baby_gender === 'female' ? 'أنثى' : 'ذكر';
+      const birthDate = args.birth_date || new Date().toLocaleDateString('ar-SA');
+      
+      // Add to family_members if userId provided
+      if (userId && args.baby_name) {
+        await supabaseClient.from('family_members').insert({
+          user_id: userId,
+          name: babyName,
+          relationship: babyGender === 'أنثى' ? 'ابنة' : 'ابن',
+          birth_date: args.birth_date || new Date().toISOString().split('T')[0],
+          is_inside_kingdom: true
+        });
+      }
+      
       return {
         status: "success",
-        message: `تم تسجيل المولود بنجاح`,
+        message: `تم تسجيل المولود "${babyName}" بنجاح`,
         data: { 
           رقم_الطلب: `NB${Date.now().toString().slice(-6)}`,
+          اسم_المولود: babyName,
+          الجنس: babyGender,
+          تاريخ_الميلاد: birthDate,
           الرسوم: "مجاني",
           الحالة: "مكتمل"
         },
@@ -660,31 +684,54 @@ serve(async (req) => {
     if (action === 'execute_tool' && tool) {
       const result = await executeTool(tool, args || {}, supabaseClient, userId);
       
-      // Save to service_requests if userId provided
+    // Save to service_requests if userId provided
       if (userId) {
         const serviceName = body.serviceName || tool;
         const serviceCategory = getValidCategory(tool, body.serviceCategory);
+        const requestStatus = result.status === 'success' ? 'completed' : (result.status === 'pending' ? 'pending' : 'processing');
         
-        console.log('Saving service request:', { userId, serviceName, serviceCategory, status: result.status });
+        console.log('=== SAVING SERVICE REQUEST ===');
+        console.log('userId:', userId);
+        console.log('serviceName:', serviceName);
+        console.log('serviceCategory:', serviceCategory);
+        console.log('status:', requestStatus);
         
-        const { data: insertedData, error: insertError } = await supabaseClient.from('service_requests').insert({
-          user_id: userId,
-          service_type: serviceName,
-          service_category: serviceCategory,
-          status: result.status === 'success' ? 'completed' : (result.status === 'pending' ? 'pending' : 'processing'),
-          request_data: { 
-            tool, 
-            args: args || {}, 
-            execution_type: 'auto', 
-            payment_method: args?.payment_method || null 
-          },
-          result_data: result.data || null
-        }).select().single();
-        
-        if (insertError) {
-          console.error('Error saving service request:', insertError);
-        } else {
-          console.log('Service request saved successfully:', insertedData?.id);
+        try {
+          const insertPayload = {
+            user_id: userId,
+            service_type: serviceName,
+            service_category: serviceCategory,
+            status: requestStatus,
+            request_data: { 
+              tool, 
+              args: args || {}, 
+              execution_type: 'auto', 
+              payment_method: args?.payment_method || null 
+            },
+            result_data: result.data || null
+          };
+          
+          console.log('Insert payload:', JSON.stringify(insertPayload));
+          
+          const { data: insertedData, error: insertError } = await supabaseClient
+            .from('service_requests')
+            .insert(insertPayload)
+            .select()
+            .single();
+          
+          if (insertError) {
+            console.error('=== INSERT ERROR ===');
+            console.error('Error code:', insertError.code);
+            console.error('Error message:', insertError.message);
+            console.error('Error details:', insertError.details);
+            console.error('Error hint:', insertError.hint);
+          } else {
+            console.log('=== INSERT SUCCESS ===');
+            console.log('Inserted ID:', insertedData?.id);
+          }
+        } catch (dbError) {
+          console.error('=== DB EXCEPTION ===');
+          console.error('Exception:', dbError);
         }
       }
       

@@ -6,13 +6,23 @@ interface AgentResult {
   status: string;
   message: string;
   data?: unknown;
+  fees?: number;
+}
+
+interface ExecuteOptions {
+  serviceName?: string;
+  serviceCategory?: string;
 }
 
 export function useAgentAction() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AgentResult | null>(null);
 
-  const executeAction = async (toolName: string, args: Record<string, unknown> = {}) => {
+  const executeAction = async (
+    toolName: string, 
+    args: Record<string, unknown> = {},
+    options: ExecuteOptions = {}
+  ) => {
     setLoading(true);
     setResult(null);
 
@@ -25,11 +35,19 @@ export function useAgentAction() {
         return null;
       }
 
+      // Clean args - remove serviceId and categoryId as they're not tool parameters
+      const cleanArgs = { ...args };
+      delete cleanArgs.serviceId;
+      delete cleanArgs.categoryId;
+
       const { data, error } = await supabase.functions.invoke('sanad-chat', {
         body: {
           action: 'execute_tool',
           tool: toolName,
-          args: { ...args, user_id: user.id },
+          args: cleanArgs,
+          userId: user.id,
+          serviceName: options.serviceName || toolName,
+          serviceCategory: options.serviceCategory,
         },
       });
 
@@ -40,7 +58,7 @@ export function useAgentAction() {
 
       if (actionResult.status === 'success') {
         toast.success(actionResult.message);
-      } else {
+      } else if (actionResult.status === 'error') {
         toast.error(actionResult.message);
       }
 
