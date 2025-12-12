@@ -51,6 +51,7 @@ interface ExecutionResult {
   status: string;
   message: string;
   data?: Record<string, unknown>;
+  fees?: number;
 }
 
 type Step = 'info' | 'payment' | 'executing' | 'result';
@@ -74,24 +75,28 @@ export function ServiceExecutionDialog({
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [selectedPayment, setSelectedPayment] = useState<string>('');
+  const [calculatedFees, setCalculatedFees] = useState<number>(0);
 
   if (!service) return null;
 
-  const hasFees = service.fees && service.fees !== 'مجاني' && service.fees !== 'بدون رسوم';
+  // Check if service potentially has fees based on the fees string
+  const potentiallyHasFees = service.fees && service.fees !== 'مجاني' && service.fees !== 'بدون رسوم';
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep === 'info') {
-      if (hasFees) {
+      if (potentiallyHasFees) {
+        // Show payment step first
         setCurrentStep('payment');
       } else {
-        handleExecute();
+        // Execute directly if no fees
+        await handleExecute();
       }
     } else if (currentStep === 'payment') {
       if (!selectedPayment) {
         toast.error('يرجى اختيار طريقة الدفع');
         return;
       }
-      handleExecute();
+      await handleExecute();
     }
   };
 
@@ -169,6 +174,7 @@ export function ServiceExecutionDialog({
     setFormData({});
     setSelectedPayment('');
     setCurrentStep('info');
+    setCalculatedFees(0);
     onOpenChange(false);
   };
 
@@ -176,7 +182,7 @@ export function ServiceExecutionDialog({
     switch (service.agentTool) {
       case 'renew_license':
         return [
-          { id: 'duration_years', label: 'مدة التجديد', type: 'select', options: [{ value: '5', label: '5 سنوات' }, { value: '10', label: '10 سنوات' }] },
+          { id: 'duration_years', label: 'مدة التجديد', type: 'select', options: [{ value: '5', label: '5 سنوات - 200 ريال' }, { value: '10', label: '10 سنوات - 400 ريال' }] },
         ];
       case 'renew_passport':
         return [
@@ -208,13 +214,15 @@ export function ServiceExecutionDialog({
   const formFields = getFormFields();
 
   const getStepIndicator = () => {
-    const steps = hasFees 
+    const steps = potentiallyHasFees 
       ? ['المعلومات', 'الدفع', 'التنفيذ', 'النتيجة']
       : ['المعلومات', 'التنفيذ', 'النتيجة'];
     
-    const currentIndex = hasFees
-      ? { info: 0, payment: 1, executing: 2, result: 3 }[currentStep]
-      : { info: 0, executing: 1, result: 2, payment: -1 }[currentStep];
+    const stepMapping = potentiallyHasFees
+      ? { info: 0, payment: 1, executing: 2, result: 3 }
+      : { info: 0, executing: 1, result: 2, payment: -1 };
+    
+    const currentIndex = stepMapping[currentStep];
 
     return (
       <div className="flex items-center justify-center gap-2 mb-6">
@@ -448,22 +456,32 @@ export function ServiceExecutionDialog({
                 </div>
                 <p className="text-sm text-center mb-4">{result.message}</p>
 
-                {result.data && (
+                {result.data && Object.keys(result.data).length > 0 && (
                   <div className="space-y-2 pt-4 border-t">
-                    {Object.entries(result.data).map(([key, value]) => (
-                      <div key={key} className="flex justify-between text-sm">
-                        <Badge variant="secondary">{String(value)}</Badge>
-                        <span className="text-muted-foreground">
-                          {key === 'request_number'
-                            ? 'رقم الطلب'
-                            : key === 'fees'
-                            ? 'الرسوم'
-                            : key === 'duration'
-                            ? 'المدة'
-                            : key}
-                        </span>
-                      </div>
-                    ))}
+                    {Object.entries(result.data).map(([key, value]) => {
+                      // Skip arrays and complex objects for now
+                      if (typeof value === 'object' && value !== null) {
+                        if (Array.isArray(value)) {
+                          return (
+                            <div key={key} className="text-sm text-right">
+                              <span className="text-muted-foreground block mb-1">{key.replace(/_/g, ' ')}:</span>
+                              <ul className="list-disc list-inside">
+                                {value.map((item, idx) => (
+                                  <li key={idx}>{String(item)}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }
+                      return (
+                        <div key={key} className="flex justify-between text-sm items-center">
+                          <Badge variant="secondary" className="font-normal">{String(value)}</Badge>
+                          <span className="text-muted-foreground">{key.replace(/_/g, ' ')}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -485,7 +503,7 @@ export function ServiceExecutionDialog({
                 onClick={handleNext}
                 className="gradient-primary text-primary-foreground gap-2"
               >
-                {hasFees ? 'متابعة للدفع' : 'تنفيذ الخدمة'}
+                {potentiallyHasFees ? 'متابعة للدفع' : 'تنفيذ الخدمة'}
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             </>

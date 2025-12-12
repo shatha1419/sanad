@@ -219,7 +219,7 @@ const agentTools = [
 ];
 
 // Execute agent tool
-async function executeTool(toolName: string, args: Record<string, unknown>, supabaseClient: any, userId?: string): Promise<{ status: string; message: string; data?: unknown }> {
+async function executeTool(toolName: string, args: Record<string, unknown>, supabaseClient: any, userId?: string): Promise<{ status: string; message: string; data?: unknown; fees?: number }> {
   console.log(`Executing tool: ${toolName}`, args);
   
   switch (toolName) {
@@ -232,15 +232,24 @@ async function executeTool(toolName: string, args: Record<string, unknown>, supa
       return {
         status: "success",
         message: `تم العثور على ${fines.length} مخالفات بإجمالي ${total} ريال`,
-        data: { fines, total }
+        data: { 
+          المخالفات: fines.map(f => `${f.reason} - ${f.amount} ريال`),
+          الإجمالي: `${total} ريال`
+        },
+        fees: 0
       };
     }
 
     case "pay_fine": {
       return {
         status: "success",
-        message: `تم دفع المخالفة رقم ${args.fine_id} بنجاح. سيتم إرسال إيصال الدفع عبر الرسائل النصية.`,
-        data: { fine_id: args.fine_id, paid: true, receipt_number: `R${Date.now()}` }
+        message: `تم دفع المخالفة بنجاح. سيتم إرسال إيصال الدفع عبر الرسائل النصية.`,
+        data: { 
+          رقم_المخالفة: args.fine_id,
+          الحالة: "مدفوعة",
+          رقم_الإيصال: `R${Date.now().toString().slice(-6)}`
+        },
+        fees: 0
       };
     }
 
@@ -249,40 +258,94 @@ async function executeTool(toolName: string, args: Record<string, unknown>, supa
       const fees = duration * 40;
       return {
         status: "success",
-        message: `تم تقديم طلب تجديد الرخصة لمدة ${duration} سنوات. الرسوم: ${fees} ريال. سيتم إرسال الرخصة لعنوانك الوطني.`,
-        data: { request_number: `LR${Date.now().toString().slice(-6)}`, fees, duration }
+        message: `تم تقديم طلب تجديد الرخصة بنجاح`,
+        data: { 
+          رقم_الطلب: `LR${Date.now().toString().slice(-6)}`,
+          المدة: `${duration} سنوات`,
+          الرسوم: `${fees} ريال`,
+          التوصيل: "سيتم إرسال الرخصة للعنوان الوطني"
+        },
+        fees
       };
     }
 
     case "issue_license": {
       return {
         status: "pending",
-        message: `لإصدار رخصة قيادة جديدة، يجب اجتياز التدريب في مدرسة قيادة معتمدة. الرسوم: 100-400 ريال حسب نوع الرخصة.`,
-        data: { requirements: ["فحص طبي", "فحص نظري", "فحص عملي", "إتمام الساعات التدريبية"] }
+        message: `لإصدار رخصة قيادة جديدة، يجب اجتياز التدريب في مدرسة قيادة معتمدة`,
+        data: { 
+          المتطلبات: ["فحص طبي", "فحص نظري", "فحص عملي", "إتمام الساعات التدريبية"],
+          الرسوم: "100-400 ريال حسب نوع الرخصة"
+        },
+        fees: 0
       };
     }
 
     case "renew_vehicle_registration": {
+      const fees = 100;
       return {
         status: "success",
-        message: `تم تجديد رخصة سير المركبة. الرسوم: 100 ريال. رقم الطلب: VR${Date.now().toString().slice(-6)}`,
-        data: { request_number: `VR${Date.now().toString().slice(-6)}`, fees: 100 }
+        message: `تم تجديد رخصة سير المركبة بنجاح`,
+        data: { 
+          رقم_الطلب: `VR${Date.now().toString().slice(-6)}`,
+          الرسوم: `${fees} ريال`,
+          الحالة: "مكتمل"
+        },
+        fees
       };
     }
 
     case "transfer_vehicle_ownership": {
+      const fees = 230;
       return {
         status: "success",
-        message: `تم تقديم طلب نقل ملكية المركبة. الرسوم: 230 ريال. سيتم إشعار المشتري لتأكيد العملية.`,
-        data: { request_number: `TO${Date.now().toString().slice(-6)}`, fees: 230 }
+        message: `تم تقديم طلب نقل ملكية المركبة بنجاح`,
+        data: { 
+          رقم_الطلب: `TO${Date.now().toString().slice(-6)}`,
+          الرسوم: `${fees} ريال`,
+          الحالة: "سيتم إشعار المشتري لتأكيد العملية"
+        },
+        fees
+      };
+    }
+
+    case "add_vehicle_user": {
+      return {
+        status: "success",
+        message: `تم إضافة مستخدم فعلي للمركبة بنجاح`,
+        data: { 
+          رقم_الطلب: `AU${Date.now().toString().slice(-6)}`,
+          الرسوم: "مجاني",
+          الحالة: "مكتمل"
+        },
+        fees: 0
+      };
+    }
+
+    case "remove_vehicle_user": {
+      return {
+        status: "success",
+        message: `تم إزالة المستخدم الفعلي من المركبة بنجاح`,
+        data: { 
+          رقم_الطلب: `RU${Date.now().toString().slice(-6)}`,
+          الرسوم: "مجاني",
+          الحالة: "مكتمل"
+        },
+        fees: 0
       };
     }
 
     case "violation_objection": {
       return {
         status: "success",
-        message: `تم تقديم اعتراض على المخالفة رقم ${args.violation_number}. سيتم مراجعة الاعتراض خلال 30 يوم عمل.`,
-        data: { objection_number: `OB${Date.now().toString().slice(-6)}`, violation: args.violation_number }
+        message: `تم تقديم الاعتراض على المخالفة بنجاح`,
+        data: { 
+          رقم_الاعتراض: `OB${Date.now().toString().slice(-6)}`,
+          رقم_المخالفة: args.violation_number || "غير محدد",
+          الرسوم: "مجاني",
+          المدة_المتوقعة: "30 يوم عمل"
+        },
+        fees: 0
       };
     }
 
@@ -292,7 +355,6 @@ async function executeTool(toolName: string, args: Record<string, unknown>, supa
       const dateStr = appointmentDate.toLocaleDateString('ar-SA');
       const deptName = args.department === 'passports' ? 'الجوازات' : args.department === 'traffic' ? 'المرور' : 'الأحوال المدنية';
       
-      // Save appointment to database if userId provided
       if (userId) {
         await supabaseClient.from('appointments').insert({
           user_id: userId,
@@ -307,8 +369,15 @@ async function executeTool(toolName: string, args: Record<string, unknown>, supa
       
       return {
         status: "success",
-        message: `تم حجز موعد في ${deptName} يوم ${dateStr} الساعة 9:00 صباحاً.`,
-        data: { appointment_number: `A${Date.now().toString().slice(-6)}`, date: dateStr, time: "09:00" }
+        message: `تم حجز الموعد بنجاح`,
+        data: { 
+          رقم_الموعد: `A${Date.now().toString().slice(-6)}`,
+          التاريخ: dateStr,
+          الوقت: "09:00 صباحاً",
+          الجهة: deptName,
+          الرسوم: "مجاني"
+        },
+        fees: 0
       };
     }
 
@@ -317,16 +386,26 @@ async function executeTool(toolName: string, args: Record<string, unknown>, supa
       const fees = duration === 10 ? 600 : 300;
       return {
         status: "success",
-        message: `تم تقديم طلب تجديد الجواز لمدة ${duration} سنوات. الرسوم: ${fees} ريال. سيتم إرسال الجواز عبر البريد.`,
-        data: { request_number: `P${Date.now().toString().slice(-6)}`, fees, duration }
+        message: `تم تقديم طلب تجديد الجواز بنجاح`,
+        data: { 
+          رقم_الطلب: `P${Date.now().toString().slice(-6)}`,
+          المدة: `${duration} سنوات`,
+          الرسوم: `${fees} ريال`,
+          التوصيل: "سيتم إرسال الجواز عبر البريد"
+        },
+        fees
       };
     }
 
     case "issue_passport": {
       return {
         status: "pending",
-        message: `لإصدار جواز سفر جديد، يرجى حجز موعد في الجوازات. المتطلبات: الهوية الوطنية، صور شخصية بخلفية بيضاء.`,
-        data: { requirements: ["الهوية الوطنية", "صور شخصية بخلفية بيضاء"], fees: 300 }
+        message: `لإصدار جواز سفر جديد، يرجى حجز موعد في الجوازات`,
+        data: { 
+          المتطلبات: ["الهوية الوطنية", "صور شخصية بخلفية بيضاء"],
+          الرسوم: "300 ريال"
+        },
+        fees: 300
       };
     }
 
@@ -334,24 +413,104 @@ async function executeTool(toolName: string, args: Record<string, unknown>, supa
       const delivery = args.delivery_type === 'office' ? 'استلام من الفرع' : 'توصيل للعنوان الوطني';
       return {
         status: "success",
-        message: `تم تقديم طلب تجديد الهوية الوطنية. ${delivery}. مجاني.`,
-        data: { request_number: `ID${Date.now().toString().slice(-6)}`, delivery, fees: 0 }
+        message: `تم تقديم طلب تجديد الهوية الوطنية بنجاح`,
+        data: { 
+          رقم_الطلب: `ID${Date.now().toString().slice(-6)}`,
+          طريقة_الاستلام: delivery,
+          الرسوم: "مجاني"
+        },
+        fees: 0
       };
     }
 
     case "issue_new_id": {
       return {
         status: "pending",
-        message: `لإصدار هوية وطنية جديدة، يجب حضور ولي الأمر مع المستفيد إلى مكتب الأحوال المدنية. مجاني.`,
-        data: { requirements: ["صورة شخصية", "شهادة الميلاد", "حضور ولي الأمر"], fees: 0 }
+        message: `لإصدار هوية وطنية جديدة، يجب حضور ولي الأمر مع المستفيد إلى مكتب الأحوال المدنية`,
+        data: { 
+          المتطلبات: ["صورة شخصية", "شهادة الميلاد", "حضور ولي الأمر"],
+          الرسوم: "مجاني"
+        },
+        fees: 0
+      };
+    }
+
+    case "issue_family_record": {
+      return {
+        status: "success",
+        message: `تم تقديم طلب إصدار سجل الأسرة بنجاح`,
+        data: { 
+          رقم_الطلب: `FR${Date.now().toString().slice(-6)}`,
+          الرسوم: "مجاني",
+          الحالة: "قيد المراجعة"
+        },
+        fees: 0
+      };
+    }
+
+    case "register_newborn": {
+      return {
+        status: "success",
+        message: `تم تسجيل المولود بنجاح`,
+        data: { 
+          رقم_الطلب: `NB${Date.now().toString().slice(-6)}`,
+          الرسوم: "مجاني",
+          الحالة: "مكتمل"
+        },
+        fees: 0
+      };
+    }
+
+    case "update_qualification": {
+      return {
+        status: "success",
+        message: `تم تقديم طلب تعديل المؤهل الدراسي بنجاح`,
+        data: { 
+          رقم_الطلب: `UQ${Date.now().toString().slice(-6)}`,
+          الرسوم: "مجاني",
+          الحالة: "قيد المراجعة"
+        },
+        fees: 0
+      };
+    }
+
+    case "update_english_name": {
+      return {
+        status: "success",
+        message: `تم تقديم طلب تعديل الاسم بالإنجليزية بنجاح`,
+        data: { 
+          رقم_الطلب: `EN${Date.now().toString().slice(-6)}`,
+          الرسوم: "مجاني",
+          الحالة: "قيد المراجعة"
+        },
+        fees: 0
       };
     }
 
     case "renew_iqama": {
+      const fees = 650;
       return {
         status: "success",
-        message: `تم تقديم طلب تجديد الإقامة. الرسوم: 650 ريال. رقم الطلب: IQ${Date.now().toString().slice(-6)}`,
-        data: { request_number: `IQ${Date.now().toString().slice(-6)}`, fees: 650 }
+        message: `تم تقديم طلب تجديد الإقامة بنجاح`,
+        data: { 
+          رقم_الطلب: `IQ${Date.now().toString().slice(-6)}`,
+          الرسوم: `${fees} ريال`,
+          الحالة: "قيد المعالجة"
+        },
+        fees
+      };
+    }
+
+    case "transfer_passport_info": {
+      return {
+        status: "success",
+        message: `تم نقل معلومات الجواز بنجاح`,
+        data: { 
+          رقم_الطلب: `TP${Date.now().toString().slice(-6)}`,
+          الرسوم: "مجاني",
+          الحالة: "مكتمل"
+        },
+        fees: 0
       };
     }
 
@@ -360,29 +519,51 @@ async function executeTool(toolName: string, args: Record<string, unknown>, supa
       const type = args.visa_type === 'multiple' ? 'متعددة' : 'مفردة';
       return {
         status: "success",
-        message: `تم إصدار تأشيرة خروج وعودة ${type}. الرسوم: ${fees} ريال.`,
-        data: { visa_number: `ER${Date.now().toString().slice(-6)}`, type, fees }
+        message: `تم إصدار تأشيرة خروج وعودة ${type} بنجاح`,
+        data: { 
+          رقم_التأشيرة: `ER${Date.now().toString().slice(-6)}`,
+          النوع: type,
+          الرسوم: `${fees} ريال`
+        },
+        fees
       };
     }
 
     case "final_exit_visa": {
       return {
         status: "success",
-        message: `تم إصدار تأشيرة خروج نهائي. مجاني. يجب المغادرة خلال 60 يوم.`,
-        data: { visa_number: `FE${Date.now().toString().slice(-6)}`, fees: 0 }
+        message: `تم إصدار تأشيرة خروج نهائي بنجاح`,
+        data: { 
+          رقم_التأشيرة: `FE${Date.now().toString().slice(-6)}`,
+          الرسوم: "مجاني",
+          ملاحظة: "يجب المغادرة خلال 60 يوم"
+        },
+        fees: 0
+      };
+    }
+
+    case "transfer_sponsorship": {
+      const fees = 2000;
+      return {
+        status: "success",
+        message: `تم تقديم طلب نقل الكفالة بنجاح`,
+        data: { 
+          رقم_الطلب: `TS${Date.now().toString().slice(-6)}`,
+          الرسوم: `${fees} ريال`,
+          الحالة: "بانتظار موافقة الكفيل الحالي"
+        },
+        fees
       };
     }
 
     case "search_knowledge": {
       const query = (args.query as string || '').toLowerCase();
       
-      // Search in database first
       const { data: dbResults } = await supabaseClient
         .from('knowledge_base')
         .select('title, content, category')
         .limit(3);
       
-      // Also search in embedded knowledge
       const relevantServices = SERVICES_KNOWLEDGE.filter(s => 
         s.name.includes(query) || 
         s.category.includes(query) || 
@@ -402,7 +583,8 @@ async function executeTool(toolName: string, args: Record<string, unknown>, supa
       return {
         status: "success",
         message: results.length > 0 ? "تم العثور على معلومات" : "لم يتم العثور على نتائج مطابقة",
-        data: { results: results.slice(0, 5) }
+        data: { results: results.slice(0, 5) },
+        fees: 0
       };
     }
 
