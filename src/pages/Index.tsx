@@ -170,7 +170,6 @@ const appointmentCard = { id: 'appointments', name: 'مواعيد', icon: Calend
 const featuredServices = [
   { id: 'issue_license', name: 'إصدار رخصة', icon: CertificateIcon, route: '/services/traffic/issue_license' },
   { id: 'renew_id', name: 'تجديد هوية', icon: ReportsIcon, route: '/services/civil_affairs/renew_id' },
-  { id: 'photo_analyzer', name: 'محلل صور أبشر', icon: PhotoIcon, route: '/photo-analyzer' },
 ];
 
 export default function Index() {
@@ -328,6 +327,45 @@ export default function Index() {
                   }`}
                 />
               ))}
+            </div>
+          </div>
+
+          {/* Photo Analyzer Banner */}
+          <div 
+            onClick={() => navigate('/photo-analyzer')}
+            className="mx-0 mb-6 cursor-pointer group"
+          >
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-[#1a3a20] via-[#2a5934] to-[#3d7a4a] p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+              {/* Background Pattern */}
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute top-0 left-0 w-32 h-32 bg-white/20 rounded-full -translate-x-16 -translate-y-16"></div>
+                <div className="absolute bottom-0 right-0 w-48 h-48 bg-white/10 rounded-full translate-x-24 translate-y-24"></div>
+              </div>
+              
+              <div className="relative flex items-center justify-between gap-4">
+                {/* Text Content */}
+                <div className="flex-1 text-right">
+                  <div className="flex items-center justify-end gap-2 mb-2">
+                    <h3 className="text-xl font-bold text-white">جدد صورتك بضغطة زر</h3>
+                    <svg viewBox="0 0 24 24" className="w-5 h-5 text-white/80" fill="currentColor">
+                      <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                    </svg>
+                  </div>
+                  <p className="text-sm text-white/90 leading-relaxed">
+                    عبر أحدث التقنيات جدد صورتك عبر رفعها فقط وخل الباقي علينا نضبطها لك نصلح الأخطاء كأنك بالستيديو
+                  </p>
+                </div>
+                
+                {/* Icon */}
+                <div className="shrink-0 w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <svg viewBox="0 0 48 48" className="w-10 h-10 text-white" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="6" y="10" width="36" height="28" rx="3" />
+                    <circle cx="24" cy="24" r="8" />
+                    <circle cx="24" cy="24" r="4" />
+                    <rect x="32" y="14" width="6" height="4" rx="1" />
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
         </div>
