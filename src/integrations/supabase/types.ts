@@ -247,6 +247,39 @@ export type Database = {
           },
         ]
       }
+      photo_analyses: {
+        Row: {
+          analysis_result: Json
+          created_at: string
+          edited_image_url: string | null
+          id: string
+          original_image_url: string | null
+          overall_confidence: number
+          user_id: string
+          verdict: string
+        }
+        Insert: {
+          analysis_result: Json
+          created_at?: string
+          edited_image_url?: string | null
+          id?: string
+          original_image_url?: string | null
+          overall_confidence: number
+          user_id: string
+          verdict: string
+        }
+        Update: {
+          analysis_result?: Json
+          created_at?: string
+          edited_image_url?: string | null
+          id?: string
+          original_image_url?: string | null
+          overall_confidence?: number
+          user_id?: string
+          verdict?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           birth_date_gregorian: string | null
