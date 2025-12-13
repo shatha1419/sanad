@@ -1,17 +1,19 @@
 import { useRef, useCallback, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, Camera, ImageIcon, X } from 'lucide-react';
+import { Upload, Camera, ImageIcon, X, Images } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { CameraGuide } from './CameraGuide';
 
 interface ImageUploaderProps {
   onImageSelect: (imageBase64: string) => void;
+  onMultipleImagesSelect?: (images: string[]) => void;
+  allowMultiple?: boolean;
 }
 
-export function ImageUploader({ onImageSelect }: ImageUploaderProps) {
+export function ImageUploader({ onImageSelect, onMultipleImagesSelect, allowMultiple = false }: ImageUploaderProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
 
@@ -33,12 +35,55 @@ export function ImageUploader({ onImageSelect }: ImageUploaderProps) {
     reader.readAsDataURL(file);
   }, [toast, onImageSelect]);
 
+  const handleMultipleFiles = useCallback((files: FileList) => {
+    const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+    
+    if (imageFiles.length === 0) {
+      toast({
+        title: 'خطأ',
+        description: 'يرجى اختيار ملفات صور صالحة',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (imageFiles.length > 10) {
+      toast({
+        title: 'تنبيه',
+        description: 'الحد الأقصى 10 صور، سيتم تحليل أول 10 صور فقط',
+        variant: 'default',
+      });
+    }
+
+    const filesToProcess = imageFiles.slice(0, 10);
+    const promises = filesToProcess.map(file => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(promises).then(results => {
+      if (onMultipleImagesSelect) {
+        onMultipleImagesSelect(results);
+      } else if (results.length > 0) {
+        onImageSelect(results[0]);
+      }
+    });
+  }, [toast, onImageSelect, onMultipleImagesSelect]);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileSelect(file);
-  }, [handleFileSelect]);
+    const files = e.dataTransfer.files;
+    
+    if (allowMultiple && files.length > 1) {
+      handleMultipleFiles(files);
+    } else if (files[0]) {
+      handleFileSelect(files[0]);
+    }
+  }, [handleFileSelect, handleMultipleFiles, allowMultiple]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -49,65 +94,34 @@ export function ImageUploader({ onImageSelect }: ImageUploaderProps) {
     setIsDragging(false);
   }, []);
 
-  const openCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-      setShowCamera(true);
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-        }
-      }, 100);
-    } catch (error) {
-      toast({
-        title: 'خطأ',
-        description: 'لا يمكن الوصول للكاميرا',
-        variant: 'destructive',
-      });
-    }
+  const openCamera = () => {
+    setShowCamera(true);
   };
 
-  const capturePhoto = () => {
-    if (videoRef.current) {
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0);
-        const result = canvas.toDataURL('image/jpeg');
-        onImageSelect(result);
-      }
-      closeCamera();
-    }
-  };
-
-  const closeCamera = () => {
-    if (videoRef.current?.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach(track => track.stop());
-    }
+  const handleCameraCapture = (imageBase64: string) => {
     setShowCamera(false);
+    onImageSelect(imageBase64);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    if (allowMultiple && files.length > 1) {
+      handleMultipleFiles(files);
+    } else if (files[0]) {
+      handleFileSelect(files[0]);
+    }
   };
 
   return (
     <>
-      {/* Camera Modal */}
+      {/* Camera with Guide */}
       {showCamera && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4">
-          <video ref={videoRef} className="max-w-full max-h-[60vh] rounded-lg" autoPlay playsInline />
-          <div className="flex gap-4 mt-6">
-            <Button onClick={capturePhoto} className="bg-primary text-primary-foreground">
-              <Camera className="w-5 h-5 ml-2" />
-              التقاط
-            </Button>
-            <Button variant="outline" onClick={closeCamera}>
-              <X className="w-4 h-4 ml-2" />
-              إلغاء
-            </Button>
-          </div>
-        </div>
+        <CameraGuide 
+          onCapture={handleCameraCapture} 
+          onClose={() => setShowCamera(false)} 
+        />
       )}
 
       <Card
@@ -125,7 +139,23 @@ export function ImageUploader({ onImageSelect }: ImageUploaderProps) {
             </div>
             <div>
               <h3 className="font-semibold text-foreground mb-1">رفع الصورة</h3>
-              <p className="text-sm text-muted-foreground">اسحب وأفلت الصورة هنا أو اختر طريقة الرفع</p>
+              <p className="text-sm text-muted-foreground">
+                {allowMultiple 
+                  ? 'اسحب وأفلت الصور هنا أو اختر طريقة الرفع (حتى 10 صور)'
+                  : 'اسحب وأفلت الصورة هنا أو اختر طريقة الرفع'
+                }
+              </p>
+            </div>
+
+            {/* Absher Requirements Summary */}
+            <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground w-full max-w-sm">
+              <p className="font-medium text-foreground mb-1">متطلبات صور أبشر:</p>
+              <ul className="space-y-0.5 text-right">
+                <li>• أبعاد 4×6 (480×640 بكسل)</li>
+                <li>• الوجه يشغل 70-80% من الارتفاع</li>
+                <li>• الأكتاف مرئية، الوجه في المنتصف</li>
+                <li>• خلفية بيضاء، إضاءة متساوية</li>
+              </ul>
             </div>
 
             <div className="flex flex-wrap gap-3 justify-center">
@@ -137,6 +167,16 @@ export function ImageUploader({ onImageSelect }: ImageUploaderProps) {
                 <Upload className="w-4 h-4" />
                 اختيار ملف
               </Button>
+              {allowMultiple && (
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="gap-2"
+                >
+                  <Images className="w-4 h-4" />
+                  اختيار عدة صور
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={openCamera}
@@ -152,8 +192,9 @@ export function ImageUploader({ onImageSelect }: ImageUploaderProps) {
             ref={fileInputRef}
             type="file"
             accept="image/*"
+            multiple={allowMultiple}
             className="hidden"
-            onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+            onChange={handleFileInputChange}
           />
         </CardContent>
       </Card>

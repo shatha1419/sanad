@@ -6,11 +6,14 @@ export interface AnalysisCriterion {
 
 export interface Analysis {
   face_visible: AnalysisCriterion;
+  face_size?: AnalysisCriterion;
+  face_centered?: AnalysisCriterion;
+  shoulders_visible?: AnalysisCriterion;
+  head_straight: AnalysisCriterion;
   lighting: AnalysisCriterion;
   background: AnalysisCriterion;
   no_glasses: AnalysisCriterion;
   neutral_expression: AnalysisCriterion;
-  head_straight: AnalysisCriterion;
   proper_crop: AnalysisCriterion;
   not_ai_generated: AnalysisCriterion;
 }
@@ -39,13 +42,27 @@ export type AgentStep =
   | 'comparing' 
   | 'final';
 
-export const CRITERIA_LABELS: Record<keyof Analysis, string> = {
+export const CRITERIA_LABELS: Record<string, string> = {
   face_visible: 'الوجه واضح',
+  face_size: 'حجم الوجه (70-80%)',
+  face_centered: 'الوجه في المنتصف',
+  shoulders_visible: 'الأكتاف مرئية',
+  head_straight: 'الرأس مستقيم',
   lighting: 'الإضاءة',
-  background: 'الخلفية',
+  background: 'الخلفية بيضاء',
   no_glasses: 'بدون نظارات',
   neutral_expression: 'تعبير محايد',
-  head_straight: 'الرأس مستقيم',
-  proper_crop: 'حجم مناسب',
+  proper_crop: 'أبعاد 4:6',
   not_ai_generated: 'صورة حقيقية'
 };
+
+export interface PhotoAnalysis {
+  id: string;
+  user_id: string;
+  original_image_url: string | null;
+  edited_image_url: string | null;
+  analysis_result: AnalysisResult;
+  verdict: string;
+  overall_confidence: number;
+  created_at: string;
+}
