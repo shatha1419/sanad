@@ -203,45 +203,55 @@ async function applyFixes(imageBase64: string, fixes: string[], apiKey: string) 
   fixes.forEach(fix => {
     switch (fix) {
       case 'straighten':
-        fixInstructions.push('- قم بتعديل ميلان الصورة لتكون مستقيمة تماماً (الرأس والعينين على خط أفقي مستوٍ)');
+        fixInstructions.push('- Rotate the entire image to make it straight (align eyes horizontally)');
         break;
       case 'crop_resize':
-        fixInstructions.push('- قص الصورة بنسبة 4:6 (عرض:ارتفاع)');
-        fixInstructions.push('- اجعل الوجه في منتصف الصورة تماماً');
-        fixInstructions.push('- اضبط حجم الوجه ليشغل 70-80% من ارتفاع الصورة');
-        fixInstructions.push('- تأكد من ظهور الأكتاف في أسفل الصورة');
-        fixInstructions.push('- اترك مسافة صغيرة (حوالي 6%) من أعلى الصورة للشعر');
+        fixInstructions.push('- Crop the image to 4:6 aspect ratio');
+        fixInstructions.push('- Center the face in the frame');
+        fixInstructions.push('- Make sure shoulders are visible at the bottom');
         break;
       case 'background':
-        fixInstructions.push('- غيّر الخلفية إلى لون أبيض نقي (#FFFFFF)');
-        fixInstructions.push('- أزل أي ظلال أو أنماط من الخلفية');
+        fixInstructions.push('- Replace ONLY the background with pure white (#FFFFFF)');
+        fixInstructions.push('- Use precise edge detection to separate person from background');
+        fixInstructions.push('- Keep ALL details of the person exactly as they are');
         break;
       case 'lighting':
-        fixInstructions.push('- حسّن الإضاءة لتكون متساوية على الوجه');
-        fixInstructions.push('- أزل أي ظلال قوية');
-        fixInstructions.push('- تأكد من وضوح ملامح الوجه');
+        fixInstructions.push('- Slightly increase brightness uniformly across the entire image');
+        fixInstructions.push('- Do NOT alter skin tone, facial features, or any details');
         break;
     }
   });
 
-  const editPrompt = `أنت خبير في تحرير صور الهوية الرسمية.
+  const editPrompt = `You are a professional photo editor for official ID photos.
 
-مهمتك: تعديل هذه الصورة لتتوافق مع متطلبات صور أبشر السعودية.
+CRITICAL INSTRUCTION - READ CAREFULLY:
+You must ONLY perform these specific edits. DO NOT modify, alter, enhance, or change the person's face, skin, features, or body in ANY way.
 
 ═══════════════════════════════════════════════════
-📋 التعديلات المطلوبة:
+ALLOWED EDITS (ONLY these):
 ═══════════════════════════════════════════════════
 ${fixInstructions.join('\n')}
 
 ═══════════════════════════════════════════════════
-⚠️ قواعد مهمة جداً:
+STRICTLY FORBIDDEN - DO NOT DO ANY OF THESE:
 ═══════════════════════════════════════════════════
-- حافظ على هوية الشخص وملامحه الأصلية بدقة 100%
-- لا تغير لون البشرة أو الشعر أو ملامح الوجه
-- النتيجة النهائية يجب أن تكون صورة هوية رسمية احترافية
-- الأبعاد النهائية: نسبة 4:6 (مثل 480×640 بكسل)
-- الوجه يجب أن يكون في المنتصف ويشغل 70-80% من الارتفاع
-- الأكتاف يجب أن تظهر في أسفل الصورة`;
+- DO NOT change facial features (eyes, nose, mouth, ears)
+- DO NOT alter skin color or texture
+- DO NOT smooth or enhance the skin
+- DO NOT change hair color or style
+- DO NOT modify body shape or size
+- DO NOT add makeup or filters
+- DO NOT use any AI beautification
+- DO NOT regenerate or recreate the face
+- The output face MUST be IDENTICAL pixel-by-pixel to the input face
+
+Think of this as a simple photo editing task:
+1. Background replacement = Cut out the person and put them on white
+2. Lighting = Adjust brightness slider only
+3. Crop = Resize and reframe the image
+
+The person in the output image must look EXACTLY the same as the input.
+Return the edited image.`;
 
   try {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
