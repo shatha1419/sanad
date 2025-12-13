@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ImageCropper } from '@/components/ImageCropper';
-import { ChevronRight, Loader2, X, Crop, Shield, History, Images } from 'lucide-react';
+import { ChevronRight, Loader2, X, Crop, Shield, History, Images, FlaskConical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -21,6 +21,7 @@ import { BeforeAfterComparison } from '@/components/photo-analyzer/BeforeAfterCo
 import { FinalVerdict } from '@/components/photo-analyzer/FinalVerdict';
 import { AnalysisHistory } from '@/components/photo-analyzer/AnalysisHistory';
 import { BatchAnalysis } from '@/components/photo-analyzer/BatchAnalysis';
+import { QualityTesting } from '@/components/photo-analyzer/QualityTesting';
 
 export default function PhotoAnalyzer() {
   const navigate = useNavigate();
@@ -253,10 +254,14 @@ export default function PhotoAnalyzer() {
         <div className="p-4 max-w-2xl mx-auto">
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="analyze" className="gap-2">
                 <Shield className="w-4 h-4" />
-                تحليل صورة
+                تحليل
+              </TabsTrigger>
+              <TabsTrigger value="testing" className="gap-2">
+                <FlaskConical className="w-4 h-4" />
+                اختبار
               </TabsTrigger>
               <TabsTrigger value="history" className="gap-2">
                 <History className="w-4 h-4" />
@@ -436,6 +441,10 @@ export default function PhotoAnalyzer() {
                   )}
                 </>
               )}
+            </TabsContent>
+
+            <TabsContent value="testing" className="mt-4">
+              <QualityTesting />
             </TabsContent>
 
             <TabsContent value="history" className="mt-4">
