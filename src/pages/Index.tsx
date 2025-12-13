@@ -277,6 +277,44 @@ export default function Index() {
             </Card>
           </div>
 
+          {/* Photo Analyzer Banner */}
+          <div 
+            onClick={() => navigate('/photo-analyzer')}
+            className="mb-6 cursor-pointer group"
+          >
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-[#22ACD6] via-[#2DB89F] to-[#3FC388] p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+              {/* Animated Background Pattern */}
+              <div className="absolute inset-0 opacity-20">
+                <div className="absolute top-0 left-0 w-32 h-32 bg-white/30 rounded-full -translate-x-16 -translate-y-16 group-hover:scale-150 transition-transform duration-500"></div>
+                <div className="absolute bottom-0 right-0 w-48 h-48 bg-white/20 rounded-full translate-x-24 translate-y-24 group-hover:scale-125 transition-transform duration-500"></div>
+                <div className="absolute top-1/2 left-1/2 w-24 h-24 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2 group-hover:scale-200 transition-transform duration-700"></div>
+              </div>
+              
+              {/* Shimmer Effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
+              
+              <div className="relative flex items-center justify-between gap-4">
+                {/* Text Content */}
+                <div className="flex-1 text-right">
+                  <h3 className="text-xl font-bold text-white group-hover:scale-105 transition-transform duration-300 origin-right mb-2">جدد صورتك بضغطة زر</h3>
+                  <p className="text-sm text-white/95 leading-relaxed group-hover:text-white transition-colors duration-300">
+                    عبر أحدث التقنيات جدد صورتك عبر رفعها فقط وخل الباقي علينا نضبطها لك نصلح الأخطاء كأنك بالستيديو
+                  </p>
+                </div>
+                
+                {/* Icon */}
+                <div className="shrink-0 w-16 h-16 bg-white/25 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 group-hover:bg-white/30 transition-all duration-300 shadow-lg">
+                  <svg viewBox="0 0 48 48" className="w-10 h-10 text-white group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="6" y="10" width="36" height="28" rx="3" />
+                    <circle cx="24" cy="24" r="8" />
+                    <circle cx="24" cy="24" r="4" />
+                    <rect x="32" y="14" width="6" height="4" rx="1" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Other Services Section */}
           <div className="mb-6 bg-muted py-8 -mx-4 px-4">
             <div className="flex items-center justify-center mb-6">
@@ -327,49 +365,6 @@ export default function Index() {
                   }`}
                 />
               ))}
-            </div>
-          </div>
-
-          {/* Photo Analyzer Banner */}
-          <div 
-            onClick={() => navigate('/photo-analyzer')}
-            className="mx-0 mb-6 cursor-pointer group"
-          >
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-[#22ACD6] via-[#2DB89F] to-[#3FC388] p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
-              {/* Animated Background Pattern */}
-              <div className="absolute inset-0 opacity-20">
-                <div className="absolute top-0 left-0 w-32 h-32 bg-white/30 rounded-full -translate-x-16 -translate-y-16 group-hover:scale-150 transition-transform duration-500"></div>
-                <div className="absolute bottom-0 right-0 w-48 h-48 bg-white/20 rounded-full translate-x-24 translate-y-24 group-hover:scale-125 transition-transform duration-500"></div>
-                <div className="absolute top-1/2 left-1/2 w-24 h-24 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2 group-hover:scale-200 transition-transform duration-700"></div>
-              </div>
-              
-              {/* Shimmer Effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
-              
-              <div className="relative flex items-center justify-between gap-4">
-                {/* Text Content */}
-                <div className="flex-1 text-right">
-                  <div className="flex items-center justify-end gap-2 mb-2">
-                    <h3 className="text-xl font-bold text-white group-hover:scale-105 transition-transform duration-300 origin-right">جدد صورتك بضغطة زر</h3>
-                    <svg viewBox="0 0 24 24" className="w-5 h-5 text-white/90 group-hover:rotate-12 transition-transform duration-300" fill="currentColor">
-                      <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
-                    </svg>
-                  </div>
-                  <p className="text-sm text-white/95 leading-relaxed group-hover:text-white transition-colors duration-300">
-                    عبر أحدث التقنيات جدد صورتك عبر رفعها فقط وخل الباقي علينا نضبطها لك نصلح الأخطاء كأنك بالستيديو
-                  </p>
-                </div>
-                
-                {/* Icon */}
-                <div className="shrink-0 w-16 h-16 bg-white/25 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 group-hover:bg-white/30 transition-all duration-300 shadow-lg">
-                  <svg viewBox="0 0 48 48" className="w-10 h-10 text-white group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="6" y="10" width="36" height="28" rx="3" />
-                    <circle cx="24" cy="24" r="8" />
-                    <circle cx="24" cy="24" r="4" />
-                    <rect x="32" y="14" width="6" height="4" rx="1" />
-                  </svg>
-                </div>
-              </div>
             </div>
           </div>
         </div>
