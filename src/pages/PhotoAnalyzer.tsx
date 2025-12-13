@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,170 +6,58 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ImageCropper } from '@/components/ImageCropper';
-import { 
-  Upload, 
-  Camera, 
-  Check, 
-  X, 
-  Download, 
-  RotateCcw,
-  Loader2,
-  Image as ImageIcon,
-  ChevronRight,
-  Crop,
-  AlertTriangle,
-  Shield
-} from 'lucide-react';
+import { ChevronRight, Loader2, X, Crop, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-interface AnalysisItem {
-  passed: boolean;
-  percentage: number;
-  note: string;
-}
-
-interface AnalysisResult {
-  whiteBackground: AnalysisItem;
-  straightHead: AnalysisItem;
-  centeredFace: AnalysisItem;
-  faceSize: AnalysisItem;
-  goodLighting: AnalysisItem;
-  noFilters: AnalysisItem;
-  notAiGenerated: AnalysisItem;
-  overallScore: number;
-  recommendation: string;
-}
-
-const requirements = [
-  { key: 'whiteBackground', label: 'خلفية بيضاء', description: 'الصورة يجب أن تكون على خلفية بيضاء نقية', icon: '🟢' },
-  { key: 'straightHead', label: 'الرأس مستقيم', description: 'الرأس في وضع مستقيم غير مائل', icon: '🟢' },
-  { key: 'centeredFace', label: 'الوجه في المنتصف', description: 'الوجه يجب أن يكون في منتصف الصورة', icon: '🟢' },
-  { key: 'faceSize', label: 'حجم الوجه مناسب', description: 'حجم الوجه تقريباً 70% من ارتفاع الصورة', icon: '🟢' },
-  { key: 'goodLighting', label: 'إضاءة جيدة', description: 'إضاءة واضحة بدون ظلال على الوجه', icon: '🟢' },
-  { key: 'noFilters', label: 'بدون فلاتر', description: 'الصورة طبيعية بدون فلاتر أو تعديلات', icon: '🛡️' },
-  { key: 'notAiGenerated', label: 'صورة حقيقية', description: 'ليست مولدة بالذكاء الاصطناعي', icon: '🔍' },
-];
+import { AgentStep, AnalysisResult } from '@/components/photo-analyzer/types';
+import { AgentStepIndicator } from '@/components/photo-analyzer/AgentStepIndicator';
+import { ImageUploader } from '@/components/photo-analyzer/ImageUploader';
+import { ReasoningTrace } from '@/components/photo-analyzer/ReasoningTrace';
+import { AnalysisDetails } from '@/components/photo-analyzer/AnalysisDetails';
+import { SuggestedFixes } from '@/components/photo-analyzer/SuggestedFixes';
+import { BeforeAfterComparison } from '@/components/photo-analyzer/BeforeAfterComparison';
+import { FinalVerdict } from '@/components/photo-analyzer/FinalVerdict';
 
 export default function PhotoAnalyzer() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  
-  const [image, setImage] = useState<string | null>(null);
+
+  // Image states
   const [originalImage, setOriginalImage] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [croppedImage, setCroppedImage] = useState<string | null>(null);
+  const [editedImage, setEditedImage] = useState<string | null>(null);
+  const [showCropper, setShowCropper] = useState(false);
+
+  // Agent states
+  const [currentStep, setCurrentStep] = useState<AgentStep>('upload');
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-  const [showCamera, setShowCamera] = useState(false);
-  const [showCropper, setShowCropper] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  const [appliedFixes, setAppliedFixes] = useState<string[]>([]);
+  const [isApplyingFixes, setIsApplyingFixes] = useState(false);
 
-  const handleFileSelect = useCallback((file: File) => {
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: 'خطأ',
-        description: 'يرجى اختيار ملف صورة صالح',
-        variant: 'destructive',
-      });
-      return;
-    }
+  const handleImageSelect = useCallback((imageBase64: string) => {
+    setOriginalImage(imageBase64);
+    setShowCropper(true);
+  }, []);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      setOriginalImage(result);
-      setShowCropper(true);
-      setAnalysisResult(null);
-    };
-    reader.readAsDataURL(file);
-  }, [toast]);
-
-  const handleCropComplete = useCallback((croppedImage: string) => {
-    setImage(croppedImage);
+  const handleCropComplete = useCallback((croppedImageBase64: string) => {
+    setCroppedImage(croppedImageBase64);
     setShowCropper(false);
+    // Auto-start analysis after cropping
+    analyzeImage(croppedImageBase64);
   }, []);
 
-  const openCropper = useCallback(() => {
-    if (originalImage) {
-      setShowCropper(true);
-    }
-  }, [originalImage]);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileSelect(file);
-  }, [handleFileSelect]);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  const openCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-      setShowCamera(true);
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-        }
-      }, 100);
-    } catch (error) {
-      toast({
-        title: 'خطأ',
-        description: 'لا يمكن الوصول للكاميرا',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const capturePhoto = () => {
-    if (videoRef.current) {
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0);
-        const result = canvas.toDataURL('image/jpeg');
-        setOriginalImage(result);
-        setShowCropper(true);
-        setAnalysisResult(null);
-      }
-      closeCamera();
-    }
-  };
-
-  const closeCamera = () => {
-    if (videoRef.current?.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach(track => track.stop());
-    }
-    setShowCamera(false);
-  };
-
-  const analyzeImage = async () => {
-    if (!image) return;
-
-    setIsAnalyzing(true);
+  const analyzeImage = async (imageBase64: string) => {
+    setCurrentStep('analyzing');
     setAnalysisProgress(0);
 
-    // Simulate progress
     const progressInterval = setInterval(() => {
-      setAnalysisProgress(prev => Math.min(prev + 10, 90));
-    }, 300);
+      setAnalysisProgress(prev => Math.min(prev + 5, 85));
+    }, 200);
 
     try {
       const { data, error } = await supabase.functions.invoke('analyze-photo', {
-        body: { imageBase64: image }
+        body: { imageBase64, action: 'analyze' }
       });
 
       clearInterval(progressInterval);
@@ -177,44 +65,130 @@ export default function PhotoAnalyzer() {
 
       if (error) throw error;
 
-      if (data.success) {
-        setAnalysisResult(data.analysis);
+      if (data.success && data.result) {
+        setAnalysisResult(data.result);
+        setCurrentStep('reasoning');
+
+        // After showing reasoning, move to decision
+        setTimeout(() => {
+          if (data.result.verdict === 'APPROVED') {
+            setCurrentStep('final');
+          } else if (data.result.suggested_fixes?.length > 0) {
+            setCurrentStep('decision');
+          } else {
+            setCurrentStep('final');
+          }
+        }, 2000);
+
         toast({
           title: 'اكتمل التحليل',
-          description: `النتيجة الإجمالية: ${data.analysis.overallScore}%`,
+          description: `نسبة الثقة: ${data.result.overall_confidence}%`,
         });
       } else {
-        throw new Error(data.error);
+        throw new Error(data.error || 'فشل التحليل');
       }
     } catch (error: any) {
+      clearInterval(progressInterval);
       toast({
         title: 'خطأ في التحليل',
         description: error.message || 'حدث خطأ أثناء تحليل الصورة',
         variant: 'destructive',
       });
-    } finally {
-      setIsAnalyzing(false);
+      setCurrentStep('upload');
     }
   };
 
-  const downloadImage = () => {
-    if (!image) return;
+  const handleApplyFixes = async (selectedFixes: string[]) => {
+    if (!croppedImage || selectedFixes.length === 0) return;
+
+    setIsApplyingFixes(true);
+    setCurrentStep('applying');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-photo', {
+        body: {
+          imageBase64: croppedImage,
+          action: 'apply_fixes',
+          selectedFixes
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success && data.editedImage) {
+        setEditedImage(data.editedImage);
+        setAppliedFixes(data.appliedFixes || selectedFixes);
+        setCurrentStep('comparing');
+
+        // Re-analyze the edited image after comparison
+        setTimeout(async () => {
+          await analyzeEditedImage(data.editedImage);
+        }, 2000);
+      } else {
+        throw new Error(data.error || 'فشل تطبيق التحسينات');
+      }
+    } catch (error: any) {
+      toast({
+        title: 'خطأ في التطبيق',
+        description: error.message || 'فشل تطبيق التحسينات',
+        variant: 'destructive',
+      });
+      setCurrentStep('decision');
+    } finally {
+      setIsApplyingFixes(false);
+    }
+  };
+
+  const analyzeEditedImage = async (imageBase64: string) => {
+    setCurrentStep('analyzing');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-photo', {
+        body: { imageBase64, action: 'analyze' }
+      });
+
+      if (error) throw error;
+
+      if (data.success && data.result) {
+        setAnalysisResult(data.result);
+        setCroppedImage(imageBase64);
+        setCurrentStep('final');
+      }
+    } catch (error: any) {
+      toast({
+        title: 'خطأ في إعادة التحليل',
+        description: error.message,
+        variant: 'destructive',
+      });
+      setCurrentStep('final');
+    }
+  };
+
+  const handleSkipFixes = () => {
+    setCurrentStep('final');
+  };
+
+  const handleDownload = () => {
+    const imageToDownload = editedImage || croppedImage;
+    if (!imageToDownload) return;
+
     const link = document.createElement('a');
-    link.href = image;
+    link.href = imageToDownload;
     link.download = 'absher-photo.jpg';
     link.click();
   };
 
-  const reset = () => {
-    setImage(null);
+  const handleReset = () => {
     setOriginalImage(null);
+    setCroppedImage(null);
+    setEditedImage(null);
     setAnalysisResult(null);
+    setAppliedFixes([]);
+    setCurrentStep('upload');
     setAnalysisProgress(0);
   };
 
-  const allPassed = analysisResult && Object.entries(analysisResult)
-    .filter(([key]) => requirements.some(r => r.key === key))
-    .every(([, value]) => (value as AnalysisItem).passed);
+  const currentImage = editedImage || croppedImage;
 
   return (
     <Layout>
@@ -225,233 +199,171 @@ export default function PhotoAnalyzer() {
             <button onClick={() => navigate(-1)} className="p-1">
               <ChevronRight className="w-6 h-6" />
             </button>
-            <div>
-              <h1 className="text-xl font-bold">محلل صور أبشر</h1>
-              <p className="text-sm opacity-80">تحقق من مطابقة صورتك لشروط أبشر</p>
+            <div className="flex items-center gap-2">
+              <Shield className="w-6 h-6" />
+              <div>
+                <h1 className="text-xl font-bold">وكيل التحقق من صور أبشر</h1>
+                <p className="text-sm opacity-80">Absher Photo Verification Agent</p>
+              </div>
             </div>
           </div>
         </header>
 
-        <div className="p-4 space-y-4">
-          {/* Requirements Info */}
-          <Card className="bg-card border-border">
-            <CardContent className="p-4">
-              <h3 className="font-semibold text-foreground mb-3">شروط الصور المطلوبة</h3>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                {requirements.slice(0, 5).map((req) => (
-                  <div key={req.key} className="flex items-center gap-2 text-muted-foreground">
-                    <div className="w-2 h-2 bg-primary rounded-full"></div>
-                    <span>{req.label}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+        <div className="p-4 space-y-4 max-w-2xl mx-auto">
+          {/* Step Indicator */}
+          {currentStep !== 'upload' && (
+            <AgentStepIndicator currentStep={currentStep} />
+          )}
 
           {/* Image Cropper Modal */}
           {showCropper && originalImage && (
             <ImageCropper
               imageSrc={originalImage}
               onCropComplete={handleCropComplete}
-              onCancel={() => setShowCropper(false)}
+              onCancel={() => {
+                setShowCropper(false);
+                setOriginalImage(null);
+              }}
             />
           )}
 
-          {/* Camera Modal */}
-          {showCamera && (
-            <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4">
-              <video ref={videoRef} className="max-w-full max-h-[60vh] rounded-lg" autoPlay playsInline />
-              <div className="flex gap-4 mt-6">
-                <Button onClick={capturePhoto} className="bg-primary text-primary-foreground">
-                  <Camera className="w-5 h-5 ml-2" />
-                  التقاط
-                </Button>
-                <Button variant="outline" onClick={closeCamera}>
-                  إلغاء
-                </Button>
-              </div>
+          {/* Step: Upload */}
+          {currentStep === 'upload' && (
+            <ImageUploader onImageSelect={handleImageSelect} />
+          )}
+
+          {/* Step: Analyzing */}
+          {currentStep === 'analyzing' && croppedImage && (
+            <Card className="border-border">
+              <CardContent className="p-6">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="relative w-32 h-40 rounded-lg overflow-hidden border-2 border-primary">
+                    <img src={croppedImage} alt="الصورة" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                    </div>
+                  </div>
+                  <div className="w-full max-w-xs">
+                    <Progress value={analysisProgress} className="h-2" />
+                    <p className="text-center text-sm text-muted-foreground mt-2">
+                      جاري التحليل بالذكاء الاصطناعي... {analysisProgress}%
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step: Reasoning */}
+          {currentStep === 'reasoning' && analysisResult && (
+            <div className="space-y-4">
+              {/* Current Image Preview */}
+              <Card className="border-border">
+                <CardContent className="p-4 flex justify-center">
+                  <div className="w-32 h-40 rounded-lg overflow-hidden border border-border">
+                    <img src={croppedImage!} alt="الصورة" className="w-full h-full object-cover" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <ReasoningTrace trace={analysisResult.reasoning_trace} isAnimating />
+              <AnalysisDetails analysis={analysisResult.analysis} />
             </div>
           )}
 
-          {/* Upload Section */}
-          {!image ? (
-            <Card 
-              className={`bg-card border-2 border-dashed transition-colors ${
-                isDragging ? 'border-primary bg-primary/5' : 'border-border'
-              }`}
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-            >
-              <CardContent className="p-8 text-center">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
-                    <ImageIcon className="w-10 h-10 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-1">رفع الصورة</h3>
-                    <p className="text-sm text-muted-foreground">اسحب وأفلت الصورة هنا أو اختر طريقة الرفع</p>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-3 justify-center">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => fileInputRef.current?.click()}
-                      className="gap-2"
-                    >
-                      <Upload className="w-4 h-4" />
-                      اختيار ملف
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={openCamera}
-                      className="gap-2"
-                    >
-                      <Camera className="w-4 h-4" />
-                      فتح الكاميرا
-                    </Button>
-                  </div>
-                </div>
-                
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-                />
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="bg-card border-border overflow-hidden">
-              <CardContent className="p-0">
-                <div className="relative">
-                  <img 
-                    src={image} 
-                    alt="الصورة المرفوعة" 
-                    className="w-full max-h-80 object-contain bg-muted"
-                  />
-                  <div className="absolute top-2 left-2 flex gap-2">
-                    <button 
-                      onClick={reset}
-                      className="bg-destructive text-destructive-foreground p-2 rounded-full"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                    {originalImage && !analysisResult && (
-                      <button 
-                        onClick={openCropper}
-                        className="bg-primary text-primary-foreground p-2 rounded-full"
+          {/* Step: Decision */}
+          {currentStep === 'decision' && analysisResult && (
+            <div className="space-y-4">
+              {/* Current Image Preview */}
+              <Card className="border-border">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-24 h-32 rounded-lg overflow-hidden border border-border flex-shrink-0">
+                      <img src={croppedImage!} alt="الصورة" className="w-full h-full object-cover" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">صورتك الحالية</p>
+                      <p className="text-sm text-muted-foreground">
+                        نسبة الثقة: {analysisResult.overall_confidence}%
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 h-8 text-xs"
+                        onClick={() => {
+                          if (originalImage) setShowCropper(true);
+                        }}
                       >
-                        <Crop className="w-4 h-4" />
-                      </button>
-                    )}
+                        <Crop className="w-3 h-3 ml-1" />
+                        إعادة القص
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                
-                {!analysisResult && (
-                  <div className="p-4">
-                    <Button 
-                      onClick={analyzeImage} 
-                      disabled={isAnalyzing}
-                      className="w-full bg-primary text-primary-foreground"
-                    >
-                      {isAnalyzing ? (
-                        <>
-                          <Loader2 className="w-5 h-5 ml-2 animate-spin" />
-                          جاري التحليل...
-                        </>
-                      ) : (
-                        'تحليل الصورة بالذكاء الاصطناعي'
-                      )}
-                    </Button>
-                    
-                    {isAnalyzing && (
-                      <div className="mt-4">
-                        <Progress value={analysisProgress} className="h-2" />
-                        <p className="text-center text-sm text-muted-foreground mt-2">
-                          {analysisProgress}% - جاري تحليل الصورة...
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                </CardContent>
+              </Card>
+
+              <SuggestedFixes
+                fixes={analysisResult.suggested_fixes}
+                userActions={analysisResult.user_actions_required}
+                onApplyFixes={handleApplyFixes}
+                onSkip={handleSkipFixes}
+                isApplying={isApplyingFixes}
+              />
+            </div>
+          )}
+
+          {/* Step: Applying */}
+          {currentStep === 'applying' && (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="p-6 text-center">
+                <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">جاري تطبيق التحسينات</h3>
+                <p className="text-sm text-muted-foreground">
+                  يتم تحسين صورتك باستخدام الذكاء الاصطناعي...
+                </p>
               </CardContent>
             </Card>
           )}
 
-          {/* Analysis Results */}
-          {analysisResult && (
+          {/* Step: Comparing */}
+          {currentStep === 'comparing' && croppedImage && editedImage && (
+            <BeforeAfterComparison
+              beforeImage={originalImage || croppedImage}
+              afterImage={editedImage}
+              appliedFixes={appliedFixes}
+            />
+          )}
+
+          {/* Step: Final */}
+          {currentStep === 'final' && analysisResult && currentImage && (
             <div className="space-y-4">
-              {/* Overall Score */}
-              <Card className={`border-2 ${allPassed ? 'border-green-500 bg-green-500/5' : 'border-orange-500 bg-orange-500/5'}`}>
-                <CardContent className="p-4 text-center">
-                  <div className={`text-4xl font-bold ${allPassed ? 'text-green-600' : 'text-orange-600'}`}>
-                    {analysisResult.overallScore}%
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">النتيجة الإجمالية</p>
-                  <p className={`text-sm mt-2 ${allPassed ? 'text-green-600' : 'text-orange-600'}`}>
-                    {analysisResult.recommendation}
-                  </p>
-                </CardContent>
-              </Card>
+              {/* Show comparison if edits were applied */}
+              {editedImage && originalImage && (
+                <BeforeAfterComparison
+                  beforeImage={originalImage}
+                  afterImage={editedImage}
+                  appliedFixes={appliedFixes}
+                />
+              )}
 
-              {/* Detailed Results */}
-              <Card className="bg-card border-border">
-                <CardContent className="p-4">
-                  <h3 className="font-semibold text-foreground mb-4">نتائج التحليل التفصيلية</h3>
-                  <div className="space-y-3">
-                    {requirements.map((req) => {
-                      const result = analysisResult[req.key as keyof AnalysisResult] as AnalysisItem;
-                      if (!result) return null;
-                      
-                      return (
-                        <div key={req.key} className="border-b border-border pb-3 last:border-0">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              {result.passed ? (
-                                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                                  <Check className="w-4 h-4 text-white" />
-                                </div>
-                              ) : (
-                                <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
-                                  <X className="w-4 h-4 text-white" />
-                                </div>
-                              )}
-                              <span className="font-medium text-foreground">{req.label}</span>
-                            </div>
-                            <span className={`font-bold ${result.passed ? 'text-green-600' : 'text-red-600'}`}>
-                              {result.percentage}%
-                            </span>
-                          </div>
-                          <div className="mr-8">
-                            <Progress 
-                              value={result.percentage} 
-                              className={`h-2 ${result.passed ? '[&>div]:bg-green-500' : '[&>div]:bg-red-500'}`}
-                            />
-                            <p className="text-xs text-muted-foreground mt-1">{result.note}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+              <AnalysisDetails analysis={analysisResult.analysis} />
 
-              {/* Action Buttons */}
-              <div className="flex gap-3">
-                {allPassed ? (
-                  <Button onClick={downloadImage} className="flex-1 bg-green-600 hover:bg-green-700 text-white">
-                    <Download className="w-5 h-5 ml-2" />
-                    تحميل الصورة
-                  </Button>
-                ) : (
-                  <Button onClick={reset} className="flex-1 bg-orange-600 hover:bg-orange-700 text-white">
-                    <RotateCcw className="w-5 h-5 ml-2" />
-                    إعادة التعديل
-                  </Button>
-                )}
-              </div>
+              <FinalVerdict
+                result={analysisResult}
+                image={currentImage}
+                onDownload={handleDownload}
+                onReset={handleReset}
+              />
+            </div>
+          )}
+
+          {/* Reset button when not in upload step */}
+          {currentStep !== 'upload' && currentStep !== 'final' && currentStep !== 'analyzing' && currentStep !== 'applying' && (
+            <div className="flex justify-center">
+              <Button variant="ghost" onClick={handleReset} className="text-muted-foreground">
+                <X className="w-4 h-4 ml-2" />
+                البدء من جديد
+              </Button>
             </div>
           )}
         </div>
