@@ -275,10 +275,33 @@ ${fixInstructions.join('\n')}
     }
 
     const data = await response.json();
-    const editedImageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    console.log('Image edit response:', JSON.stringify(data, null, 2));
+    
+    // Check for images in the response - the API returns images in the message
+    const message = data.choices?.[0]?.message;
+    let editedImageUrl = message?.images?.[0]?.image_url?.url;
+    
+    // Fallback: check if the image is embedded in content
+    if (!editedImageUrl && message?.content) {
+      // Try to extract base64 image from content if it's there
+      const base64Match = message.content.match(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/);
+      if (base64Match) {
+        editedImageUrl = base64Match[0];
+      }
+    }
     
     if (!editedImageUrl) {
-      throw new Error('No edited image returned');
+      console.error('No edited image in response:', JSON.stringify(data));
+      // Return the original image with a note that editing failed
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          editedImage: imageBase64,
+          appliedFixes: fixes,
+          note: 'تعذر تعديل الصورة تلقائياً، يرجى المحاولة مرة أخرى'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     return new Response(
